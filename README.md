@@ -18,7 +18,7 @@ For example, converting "background.gal" will give these files:
 * background_tmx_tileset.tsx // the Tiled map tileset in 16x16 tiles
 * background.tmx // the Tiled map
 
-The Tiled tileset are 16x16 while the actual game tiles are 8x8. The reason they're different is that the 16x16 tiles makes it easier to build maps in Tiled while still being efficient on consoles.
+The Tiled tileset are 16x16 while the actual game tiles are 8x8. The reason they're different is that the 16x16 tiles makes it easier to build maps in Tiled while the 8x8 tiles are meant to be used on consoles. The metatile look up table is used at runtime to tell how a 16x16 tile is built up of 8x8 tiles.
 
 # Assumptions
 * the image's width and height are a multiple of 16
