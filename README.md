@@ -15,8 +15,10 @@ For example, converting "background.gal" will give these files:
 * background_tileset.bmp // the 8x8 tileset for the game/runtime
 * background_metatile_map.h // the header file for the 16x16 metatiles
 * background_metatile_map.c // the source file for the 16x16 metatiles
-* background_tmx_tileset.tsx // the Tiled map tileset
+* background_tmx_tileset.tsx // the Tiled map tileset in 16x16 tiles
 * background.tmx // the Tiled map
+
+The Tiled tileset are 16x16 while the actual game tiles are 8x8. The reason they're different is that the 16x16 tiles makes it easier to build maps in Tiled while still being efficient on consoles.
 
 # Assumptions
 * the image's width and height are a multiple of 16
