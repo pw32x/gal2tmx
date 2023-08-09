@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace gal2tmx
 {
-    internal class Tile
+    internal class BitmapTile
     {
-        public Tile(int index, Bitmap bitmap, int attribute)
+        public BitmapTile(int index, Bitmap bitmap, int attribute)
         {
             Index = index;
             Bitmap = bitmap;
@@ -20,13 +20,13 @@ namespace gal2tmx
         public int Attribute { get; }
     }
 
-    internal class TileMap
+    internal class BitmapTileMap
     {
         public int Width { get; }
         public int Height { get; }
-        public List<uint> Map { get; }
+        public List<uint> Map { get; } // contains the index of the unique tile used at this map location. 
 
-        public TileMap(int width, int height)
+        public BitmapTileMap(int width, int height)
         {
             Width = width;
             Height = height;
@@ -34,7 +34,7 @@ namespace gal2tmx
         }
     }
 
-    internal class BitmapSplitter
+    internal class SplitBitmap
     {
         public enum ExportFlipType
         {
@@ -43,24 +43,24 @@ namespace gal2tmx
             Tiled
         }
 
-        public List<Tile> Tiles { get; } = new List<Tile>();
+        public List<BitmapTile> UniqueBitmapTiles { get; } = new List<BitmapTile>();
 
-        public TileMap TileMap { get; }
+        public BitmapTileMap BitmapTileMap { get; }
 
-        public unsafe BitmapSplitter(Bitmap bitmap, 
-                                     Bitmap attributeBitmap, 
-                                     BitmapSplitter tileTypes,
-                                     int splitWidth, 
-                                     int splitHeight, 
-                                     bool removeDuplicates, 
-                                     ExportFlipType exportFlipType)
+        public unsafe SplitBitmap(Bitmap bitmap, 
+                                  Bitmap attributeBitmap, 
+                                  SplitBitmap tileTypes,
+                                  int splitWidth, 
+                                  int splitHeight, 
+                                  bool removeDuplicates, 
+                                  ExportFlipType exportFlipType)
         {
             int tilesWidth = bitmap.Width / splitWidth;
             int tilesHeight = bitmap.Height / splitHeight;
 
             int tileIndex = 0;
 
-            TileMap = new TileMap(tilesWidth, tilesHeight);
+            BitmapTileMap = new BitmapTileMap(tilesWidth, tilesHeight);
 
             for (int tiley = 0; tiley < tilesHeight; tiley++)
             {
@@ -109,9 +109,9 @@ namespace gal2tmx
 
                         if (tuple == null)
                         {
-                            var newtile = new Tile(tileIndex, bitmapTile, tileAttribute);
+                            var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
 
-                            Tiles.Add(newtile);
+                            UniqueBitmapTiles.Add(newtile);
 
                             tileIndexToUse = (uint)tileIndex;
 
@@ -129,16 +129,16 @@ namespace gal2tmx
                     else
                     {
                         var bitmapTile = bitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
-                        var newtile = new Tile(tileIndex, bitmapTile, tileAttribute);
+                        var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
 
-                        Tiles.Add(newtile);
+                        UniqueBitmapTiles.Add(newtile);
 
                         tileIndexToUse = (uint)tileIndex;
 
                         tileIndex++;
                     }
 
-                    TileMap.Map.Add(tileIndexToUse);
+                    BitmapTileMap.Map.Add(tileIndexToUse);
                 }
             }
         }
@@ -213,13 +213,13 @@ namespace gal2tmx
             }
         }
 
-        private Tuple<Tile, RotateFlipType> getTileWithSameBitmap(Bitmap bitmap, ExportFlipType exportFlipType)
+        private Tuple<BitmapTile, RotateFlipType> getTileWithSameBitmap(Bitmap bitmap, ExportFlipType exportFlipType)
         {
-            foreach (var tile in Tiles)
+            foreach (var tile in UniqueBitmapTiles)
             {
                 if (CompareMemCmp(bitmap, tile.Bitmap))
                 {
-                    return new Tuple<Tile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipNone);
+                    return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipNone);
                 }
 
                 if (exportFlipType != ExportFlipType.None)
@@ -230,7 +230,7 @@ namespace gal2tmx
 
                     if (CompareMemCmp(flippedXBitmap, tile.Bitmap))
                     {
-                        return new Tuple<Tile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipX);
+                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipX);
                     }
 
                     // CompareFlippedY
@@ -239,7 +239,7 @@ namespace gal2tmx
 
                     if (CompareMemCmp(flippedYBitmap, tile.Bitmap))
                     {
-                        return new Tuple<Tile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipY);
+                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipY);
                     }
 
                     // CompareFlippedXY
@@ -248,7 +248,7 @@ namespace gal2tmx
 
                     if (CompareMemCmp(flippedXYBitmap, tile.Bitmap))
                     {
-                        return new Tuple<Tile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipXY);
+                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipXY);
                     }
                 }
             }

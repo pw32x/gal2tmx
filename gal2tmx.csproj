@@ -47,9 +47,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BitmapSplitter.cs" />
+    <Compile Include="SplitBitmap.cs" />
     <Compile Include="BitmapUtils.cs" />
-    <Compile Include="MetatilesUtils.cs" />
+    <Compile Include="TilesetUtils.cs" />
     <Compile Include="Gal2Tmx.cs" />
     <Compile Include="gg.cs" />
     <Compile Include="Program.cs" />

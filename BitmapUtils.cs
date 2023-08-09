@@ -8,7 +8,7 @@ namespace gal2tmx
 {
     class BitmapUtils
     {
-        static public unsafe Bitmap PackTilesetBitmap(List<Tile> tiles, int tilesAcross, int tileWidth, int tileHeight)
+        static public unsafe Bitmap PackTilesetBitmap(List<BitmapTile> tiles, int tilesAcross, int tileWidth, int tileHeight)
         {
             // 5 tiles - 10 tiles accross -> 5 packed width, 1 packed height
             // 13 tiles - 10 tiles across -> 10 packed width, 
@@ -123,7 +123,7 @@ namespace gal2tmx
             return bitmap;
         }
 
-        internal static Bitmap PackAnimatedTilesetBitmap(List<Tile> tiles, int tileWidth, int tileHeight)
+        internal static Bitmap PackAnimatedTilesetBitmap(List<BitmapTile> tiles, int tileWidth, int tileHeight)
         {
             // tiles are stored
             // 0, 1,  4, 5,   8, 9

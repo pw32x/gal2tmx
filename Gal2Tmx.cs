@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 
 // -tiletypes <file.gal>
+// - add export tile count limit checker "-maxtiles <number>"
 
 namespace gal2tmx
 {
@@ -15,7 +16,6 @@ namespace gal2tmx
 
         private string DestinationFolder { get; set; } // = @"..\..\..\gamedata\maps\";
         private string TilesetDestinationFolder { get; set; } // = @"..\..\..\gamedata\tilesets\";
-        private string MetatilesDestinationFolder { get; set; } // = @"..\..\..\gamedata\metatiles\";
         private string SourceName { get; set; }
         private string SourcePath { get; set; }
         private string TilemapDestinationPath { get; set; }
@@ -26,7 +26,7 @@ namespace gal2tmx
 
         private string TiledTilesetBmpDestinationPath { get; set; }
         private string TilesetBmpDestinationPath { get; set; }
-        private string MetatileMapFilename { get; set; }
+        private string TilesetFilename { get; set; }
 
         // optional flags
         private bool ForceOverwrite { get; set; } = false;
@@ -74,7 +74,7 @@ namespace gal2tmx
             int metatileWidth = 16;
             int metatileHeight = 16;
 
-            BitmapSplitter tileTypesblocks = null; 
+            SplitBitmap tileTypesblocks = null; 
 
             // load the tiletypes file, if given, and split into blocks.
             if (!String.IsNullOrEmpty(TileTypesPath))
@@ -82,13 +82,13 @@ namespace gal2tmx
                 var tileTypesGGObject = new GaleObject(TileTypesPath);
                 var tileTypesBitmap = tileTypesGGObject.Frames[0].Layers[0].CreateBitmap();
                 var tileTypes4bppBitmap = BitmapUtils.Create4bppBitmap(tileTypesBitmap, tileTypesGGObject.Palette);
-                tileTypesblocks = new BitmapSplitter(tileTypes4bppBitmap, 
+                tileTypesblocks = new SplitBitmap(tileTypes4bppBitmap, 
                                                      null, 
                                                      null, 
                                                      metatileWidth, 
                                                      metatileHeight, 
                                                      false, 
-                                                     BitmapSplitter.ExportFlipType.None);
+                                                     SplitBitmap.ExportFlipType.None);
             }
 
             var ggObject = new GaleObject(SourcePath);
@@ -126,17 +126,17 @@ namespace gal2tmx
             }
 
             // split the image into blocks.
-            var tiledTileset = new BitmapSplitter(ggFrame4bppBitmap, 
+            var tiledTilesetSplitBitmap = new SplitBitmap(ggFrame4bppBitmap, 
                                                   ggAttributeBitmap, 
                                                   tileTypesblocks, 
                                                   metatileWidth, 
                                                   metatileHeight, 
                                                   !IsTilesetAnimated, 
-                                                  BitmapSplitter.ExportFlipType.None);
+                                                  SplitBitmap.ExportFlipType.None);
 
             int rowWidth = IsTilesetAnimated ? 1 : 10;
 
-            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTileset.Tiles, rowWidth, metatileWidth, metatileHeight);
+            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles, rowWidth, metatileWidth, metatileHeight);
             tiledTilesetBitmap.Save(TiledTilesetBmpDestinationPath, ImageFormat.Bmp);
 
             // Save the tsx
@@ -149,7 +149,7 @@ namespace gal2tmx
                                metatileHeight,
                                IsTilesetAnimated,
                                TilesetAnimationSpeed,
-                               tiledTileset.Tiles);
+                               tiledTilesetSplitBitmap.UniqueBitmapTiles);
 
             if (!IsTilesetAnimated)
             {
@@ -162,7 +162,7 @@ namespace gal2tmx
                     System.IO.File.Move(TilemapDestinationPath, oldFilename);
                 }
 
-                TiledUtils.SaveTMX(TilemapDestinationPath, TiledTilesetFilename, metatileWidth, metatileHeight, tiledTileset.TileMap);
+                TiledUtils.SaveTMX(TilemapDestinationPath, TiledTilesetFilename, metatileWidth, metatileHeight, tiledTilesetSplitBitmap.BitmapTileMap);
             }
 
             // split the blocks into a tileset
@@ -170,17 +170,27 @@ namespace gal2tmx
             int tileHeight = 8;
 
             // don't reduce tiles if it's an animated tilset
-            var flipType = IsTilesetAnimated ? BitmapSplitter.ExportFlipType.None : BitmapSplitter.ExportFlipType.Genesis;
+            var flipType = IsTilesetAnimated ? SplitBitmap.ExportFlipType.None : SplitBitmap.ExportFlipType.Genesis;
 
-            var tileset = new BitmapSplitter(tiledTilesetBitmap, null, null, tileWidth, tileHeight, !IsTilesetAnimated, flipType);
+            var tilesetSplitBitmap = new SplitBitmap(tiledTilesetBitmap, 
+                                                     null, 
+                                                     null, 
+                                                     tileWidth, 
+                                                     tileHeight, 
+                                                     !IsTilesetAnimated, 
+                                                     flipType);
 
             Bitmap tilesetBitmap = null;
 
-            tilesetBitmap = BitmapUtils.PackTilesetBitmap(tileset.Tiles, 2, tileWidth, tileHeight);
+            tilesetBitmap = BitmapUtils.PackTilesetBitmap(tilesetSplitBitmap.UniqueBitmapTiles, 2, tileWidth, tileHeight);
  
-            tilesetBitmap.Save(TilesetBmpDestinationPath, ImageFormat.Bmp);
+            // uncomment to save the contents of the 8x8 tile set bitmap
+            //tilesetBitmap.Save(TilesetBmpDestinationPath, ImageFormat.Bmp);
 
-            MetatilesUtils.ExportMetatilesCode(MetatilesDestinationFolder, MetatileMapFilename, tileset.TileMap, IsTilesetAnimated);
+            TilesetUtils.ExportTileset(TilesetDestinationFolder, 
+                                       TilesetFilename, 
+                                       tilesetSplitBitmap, 
+                                       IsTilesetAnimated);
 
             Console.WriteLine("Conversion complete.");
 
@@ -214,9 +224,9 @@ namespace gal2tmx
 
         private void ProcessArguments(string[] args)
         {
-            BuildFilenames(args);
+            int numPaths = BuildFilenames(args);
 
-            for (int loop = 2; loop < args.Length; loop++)
+            for (int loop = numPaths; loop < args.Length; loop++)
             {
                 string arg = args[loop];
 
@@ -251,8 +261,10 @@ namespace gal2tmx
             }
         }
 
-        private void BuildFilenames(string[] args)
+        private int BuildFilenames(string[] args)
         {
+            int numPaths = 1;
+
             SourcePath = args[0];
             SourceName = Path.GetFileNameWithoutExtension(SourcePath);
 
@@ -266,22 +278,26 @@ namespace gal2tmx
                 string arg = args[1];
 
                 if (arg.StartsWith("-"))
+                {
                     DestinationFolder = Path.GetDirectoryName(SourcePath);
+                }
                 else
+                {
                     DestinationFolder = arg;
+                    numPaths++;
+                }
             }
 
             if (!String.IsNullOrEmpty(DestinationFolder) && !DestinationFolder.EndsWith(Path.DirectorySeparatorChar.ToString()))
                 DestinationFolder += Path.DirectorySeparatorChar;
 
             TilesetDestinationFolder = DestinationFolder;
-            MetatilesDestinationFolder = DestinationFolder;
-
-            TiledTilesetName = SourceName + "_tmx_tileset";
-            TiledTilesetBitmapName = TiledTilesetName + ".bmp";
+            
+            TiledTilesetName = SourceName + "_tileset";
+            TiledTilesetBitmapName = TiledTilesetName + "_tsx.bmp";
             TiledTilesetFilename = TiledTilesetName + ".tsx";
 
-            MetatileMapFilename = SourceName + "_metatile_map";
+            TilesetFilename = SourceName + "_tileset";
 
             // use the same destination folder for everything right now, but
             // leave the option to set different ones.
@@ -289,6 +305,8 @@ namespace gal2tmx
             TilemapDestinationPath = DestinationFolder + SourceName + ".tmx";
             TiledTilesetBmpDestinationPath = DestinationFolder + TiledTilesetBitmapName;
             TilesetBmpDestinationPath = DestinationFolder + SourceName + "_tileset.bmp";
+
+            return numPaths;
         }
 
         private void CheckExists()
@@ -306,11 +324,6 @@ namespace gal2tmx
             if (!String.IsNullOrWhiteSpace(TilesetDestinationFolder) && !Directory.Exists(TilesetDestinationFolder))
             {
                 Directory.CreateDirectory(TilesetDestinationFolder);
-            }
-
-            if (!String.IsNullOrWhiteSpace(MetatilesDestinationFolder) && !Directory.Exists(MetatilesDestinationFolder))
-            {
-                Directory.CreateDirectory(MetatilesDestinationFolder);
             }
         }
 

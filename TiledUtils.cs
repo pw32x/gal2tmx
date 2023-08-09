@@ -5,7 +5,7 @@ namespace gal2tmx
 {
     class TiledUtils
     {
-        public static void SaveTMX(string tmxFilename, string tsxFilename, int tileWidth, int tileHeight, TileMap tileMap)
+        public static void SaveTMX(string tmxFilename, string tsxFilename, int tileWidth, int tileHeight, BitmapTileMap tileMap)
         {
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -119,7 +119,7 @@ namespace gal2tmx
                                    int tileHeight,
                                    bool mAnimated,
                                    int animationSpeed,
-                                   List<Tile> tiles)
+                                   List<BitmapTile> tiles)
         {
             int tilecount = (bitmapWidth / tileWidth) * (bitmapHeight / tileHeight);
 
