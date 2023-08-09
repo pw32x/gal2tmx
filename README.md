@@ -1,7 +1,7 @@
 # gal2tmx
-A tool that converts Graphics Gale file to a Tiled TMX map
+A tool that converts a Graphics Gale file to a Tiled TMX map. It's intended for creating level "themes" in Graphics Gale. Create a theme in GG, then use this tool to export to TMX. Use the resulting TMX as a base to make new levels from. 
 
-The Graphics Gale image will be converted into these files:
+The gal2tmx tool will convert the Graphics Gale image into these files:
 
 * A TMX file that can be loaded in Tiled
 * Its corresponding TSX tileset using 16x16 tiles
