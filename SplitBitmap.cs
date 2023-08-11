@@ -39,7 +39,7 @@ namespace gal2tmx
         public enum ExportFlipType
         {
             None,
-            Genesis,
+            SegaMasterSystem,
             Tiled
         }
 
@@ -145,8 +145,8 @@ namespace gal2tmx
 
         private uint ApplyFlip(uint tileIndexToUse, RotateFlipType flipFlag, ExportFlipType exportFlipType)
         {
-            const uint GenesisFlippedHorizontallyFlag = (1 << 11);
-            const uint GenesisFlippedVerticallyFlag = (1 << 12);
+            const uint SegaMasterSystemFlippedHorizontallyFlag = (1 << 9);
+            const uint SegaMasterSystemFlippedVerticallyFlag = (1 << 10);
             const uint TILED_FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
             const uint TILED_FLIPPED_VERTICALLY_FLAG = 0x40000000;
 
@@ -171,14 +171,14 @@ namespace gal2tmx
                 switch (flipFlag)
                 {
                     case RotateFlipType.RotateNoneFlipX:
-                        tileIndexToUse |= GenesisFlippedHorizontallyFlag;
+                        tileIndexToUse |= SegaMasterSystemFlippedHorizontallyFlag;
                         break;
                     case RotateFlipType.RotateNoneFlipY:
-                        tileIndexToUse |= GenesisFlippedVerticallyFlag;
+                        tileIndexToUse |= SegaMasterSystemFlippedVerticallyFlag;
                         break;
                     case RotateFlipType.RotateNoneFlipXY:
-                        tileIndexToUse |= GenesisFlippedVerticallyFlag;
-                        tileIndexToUse |= GenesisFlippedHorizontallyFlag;
+                        tileIndexToUse |= SegaMasterSystemFlippedVerticallyFlag;
+                        tileIndexToUse |= SegaMasterSystemFlippedHorizontallyFlag;
                         break;
                 }
             }

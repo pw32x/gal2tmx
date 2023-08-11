@@ -170,7 +170,7 @@ namespace gal2tmx
             int tileHeight = 8;
 
             // don't reduce tiles if it's an animated tilset
-            var flipType = IsTilesetAnimated ? SplitBitmap.ExportFlipType.None : SplitBitmap.ExportFlipType.Genesis;
+            var flipType = IsTilesetAnimated ? SplitBitmap.ExportFlipType.None : SplitBitmap.ExportFlipType.SegaMasterSystem;
 
             var tilesetSplitBitmap = new SplitBitmap(tiledTilesetBitmap, 
                                                      null, 
