@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Text;
 
 namespace gal2tmx
@@ -11,6 +12,7 @@ namespace gal2tmx
         internal static void ExportTileset(string destinationFolder, 
                                            string tilesetName, 
                                            SplitBitmap tilesetSplitBitmap, 
+                                           Dictionary<uint, uint> animatedTiles,
                                            bool animated)
         {
             string headerName = tilesetName + ".h";
@@ -18,7 +20,7 @@ namespace gal2tmx
             string sourcePath = destinationFolder + tilesetName + ".c";
 
             WriteHeader(headerPath, tilesetName);
-            WriteSource(sourcePath, headerName, tilesetName, tilesetSplitBitmap, animated);
+            WriteSource(sourcePath, headerName, tilesetName, tilesetSplitBitmap, animatedTiles, animated);
         }
 
 
@@ -30,7 +32,7 @@ namespace gal2tmx
 
             stringBuilder.AppendLine("#ifndef " + tilesetName.ToUpper() + "_INCLUDE_H");
             stringBuilder.AppendLine("#define " + tilesetName.ToUpper() + "_INCLUDE_H");
-            stringBuilder.AppendLine("#include \"maptypes.h\"");
+            stringBuilder.AppendLine("#include \"map_types.h\"");
 
             stringBuilder.AppendLine("");
 
@@ -44,9 +46,16 @@ namespace gal2tmx
             file.Close();
         }
 
-        private static void WriteMetatileLUT(StringBuilder stringBuilder,
+        private static HashSet<uint> m_animatedTiles = new HashSet<uint>();
+        private static void AddToAnimatedTiles(uint value)
+        {
+            m_animatedTiles.Add(value & 0x1FF);
+        }
+
+        private static List<uint> WriteMetatileLUT(StringBuilder stringBuilder,
                                              string tilesetName,
                                              BitmapTileMap metaTileBitmapTileMap,
+                                             Dictionary<uint, uint> animatedTiles,
                                              bool animated)
         {
             var map = metaTileBitmapTileMap.Map;
@@ -66,7 +75,30 @@ namespace gal2tmx
                     uint value3 = animated ? 2 : map[x + ((y + 1) * metaTileBitmapTileMap.Width)];
                     uint value4 = animated ? 3 : map[(x + 1) + ((y + 1) * metaTileBitmapTileMap.Width)];
 
+                    /*
+                    bool changed = false;
+                    value1 = ApplyAnimationModifier(value1, animatedTiles, ref changed);
+                    value2 = ApplyAnimationModifier(value2, animatedTiles, ref changed);
+                    value3 = ApplyAnimationModifier(value3, animatedTiles, ref changed);
+                    value4 = ApplyAnimationModifier(value4, animatedTiles, ref changed);
+                    */
+
+                    int metatilex = x / 2;
+                    int metatiley = y / 2;
+                    int metatilewidth = metaTileBitmapTileMap.Width / 2;
+                    int metatileindex = metatilex + (metatiley * metatilewidth);
+
+                    if (animatedTiles.ContainsKey((uint)metatileindex))
+                    {
+                        AddToAnimatedTiles(value1);
+                        AddToAnimatedTiles(value2);
+                        AddToAnimatedTiles(value3);
+                        AddToAnimatedTiles(value4);
+                        stringBuilder.AppendLine("    // animated");
+                    }
+
                     stringBuilder.AppendLine("    // metatile " + metatileCounter);
+
 
                     stringBuilder.AppendLine("    " + value1 + ", " + value2 + ",");
                     stringBuilder.AppendLine("    " + value3 + ", " + value4 + ",");
@@ -76,7 +108,28 @@ namespace gal2tmx
             }
 
             stringBuilder.AppendLine("};");
+
+            return m_animatedTiles.ToList();
         }
+
+        
+        //private static uint ApplyAnimationModifier(uint value, Dictionary<uint, uint> animatedTiles, ref bool changed)
+        //{
+        //    
+        //    
+        //    uint flags = value & 0xFE00;
+        //
+        //    if (animatedTiles.ContainsKey(value))
+        //    {
+        //        animatedTileVdpIndex--;
+        //        changed = true;
+        //        return animatedTiles[value] | flags;
+        //    }
+        //    else
+        //    {
+        //        return value;
+        //    }
+        //}
 
         /*
 
@@ -209,7 +262,8 @@ namespace gal2tmx
 
         private static void WriteTilesetStruct(StringBuilder stringBuilder, 
                                                string tilesetName,
-                                               SplitBitmap tilesetSplitBitmap)
+                                               SplitBitmap tilesetSplitBitmap,
+                                               List<uint> animatedTilesIndexes)
         {
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
@@ -218,6 +272,13 @@ namespace gal2tmx
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.UniqueBitmapTiles.Count + ", // unique tile count");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.BitmapTileMap.Map.Count / 4 + ", // 16x16 metatiles count");
+
+            if (animatedTilesIndexes.Count > 0)
+                stringBuilder.AppendLine("    " + tilesetName + "AnimatedTileIndexes, // animated tile indexes count");
+            else
+                stringBuilder.AppendLine("    NULL, // animated tile indexes count");
+            stringBuilder.AppendLine("    " + animatedTilesIndexes.Count + ", // animated tile indexes count");
+
             stringBuilder.AppendLine("};");
         }
 
@@ -225,6 +286,7 @@ namespace gal2tmx
                                         string headerName, 
                                         string tilesetName, 
                                         SplitBitmap tilesetSplitBitmap, 
+                                        Dictionary<uint, uint> animatedTiles,
                                         bool animated)
         {
             StringBuilder stringBuilder = new StringBuilder();
@@ -232,15 +294,38 @@ namespace gal2tmx
             stringBuilder.AppendLine("#include \"" + headerName + "\"");
             stringBuilder.AppendLine("");
 
-            WriteMetatileLUT(stringBuilder, tilesetName, tilesetSplitBitmap.BitmapTileMap, animated);
+            List<uint> animatedTilesIndexes = WriteMetatileLUT(stringBuilder, 
+                                              tilesetName, 
+                                              tilesetSplitBitmap.BitmapTileMap, 
+                                              animatedTiles,
+                                              animated);
+
             WriteTilesetTiles(stringBuilder, tilesetName, tilesetSplitBitmap.UniqueBitmapTiles);
-            WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap);
+
+            if (animatedTilesIndexes.Count > 0)
+                WriteAnimatedTilesIndexes(stringBuilder, tilesetName, animatedTilesIndexes);
+
+            WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap, animatedTilesIndexes);
 
             System.IO.StreamWriter file = new System.IO.StreamWriter(sourcePath);
             file.WriteLine(stringBuilder.ToString());
             file.Close();
         }
 
+        private static void WriteAnimatedTilesIndexes(StringBuilder stringBuilder, 
+                                                      string tilesetName,
+                                                      List<uint> animatedTilesIndexes)
+        {
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine("const u16 " + tilesetName + "AnimatedTileIndexes[] = ");
+            stringBuilder.AppendLine("{");
 
+            foreach (uint index in animatedTilesIndexes)
+            {
+                stringBuilder.AppendLine("    " + index + ",");
+            }
+
+            stringBuilder.AppendLine("};");
+        }
     }
 }

@@ -31,3 +31,14 @@ The Tiled tileset are 16x16 while the actual game tiles are 8x8. The reason they
     gal2tmx [source_gal_file] [destination folder] [-y or -o]
 
   The tool checks for overwrites and prompts the user. Pass -y or -o to the command line to suppress the prompt. 
+
+
+# Layers
+
+A gal file can have layers for additional features
+
+* animated tile markers. that indicates that the tile underneath is animated. This will export a list of tile indexes that be overriden. 
+
+it's up to the developer to setup and update the animated tiles at those tile indexes for the effect to work
+
+the layer can be called anything as long as it starts with "anim" for gal2tmx to find it

@@ -45,16 +45,27 @@ namespace gal2tmx
 
         public List<BitmapTile> UniqueBitmapTiles { get; } = new List<BitmapTile>();
 
-        public BitmapTileMap BitmapTileMap { get; }
+        public BitmapTileMap BitmapTileMap { get; private set; }
 
-        public unsafe SplitBitmap(Bitmap bitmap, 
-                                  Bitmap attributeBitmap, 
-                                  SplitBitmap tileTypes,
-                                  int splitWidth, 
-                                  int splitHeight, 
-                                  bool removeDuplicates, 
-                                  ExportFlipType exportFlipType)
+        public Dictionary<uint, uint> AnimatedTiles { get; } = new Dictionary<uint, uint>();
+        private uint m_animatedTileIndex = 255;
+
+        public SplitBitmap()
         {
+
+        }
+
+        public unsafe void SplitLinearly(Bitmap bitmap, 
+                                         Bitmap attributeBitmap, 
+                                         Bitmap animatedTilesBitmap,
+                                         SplitBitmap tileTypes,
+                                         int splitWidth, 
+                                         int splitHeight, 
+                                         bool removeDuplicates, 
+                                         ExportFlipType exportFlipType)
+        {
+
+
             int tilesWidth = bitmap.Width / splitWidth;
             int tilesHeight = bitmap.Height / splitHeight;
 
@@ -74,73 +85,215 @@ namespace gal2tmx
                                                    splitWidth,
                                                    splitHeight);
 
-                    // get attribute for tile
-                    int tileAttribute = 0;
-
-                    // the attribute (TILE_SOLID, etc) comes from the index of the color in the second layer
-                    // of the image.
-                    if (attributeBitmap != null && tileTypes != null)
-                    {
-                        var attributeBitmapTile = attributeBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
-
-                        var foundTile = tileTypes.getTileWithSameBitmap(attributeBitmapTile, ExportFlipType.None);
-
-                        if (foundTile != null)
-                            tileAttribute = foundTile.Item1.Index;
-
-                        //BitmapData sourceBitmapData = attributeBitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format4bppIndexed);
-                        //byte* sourceBuffer = (byte*)sourceBitmapData.Scan0.ToPointer();
-                        //tileAttribute = sourceBuffer[0];
-                        //tileAttribute &= 0x0f;
-                        //attributeBitmap.UnlockBits(sourceBitmapData);
-
-                    }
-
-                    uint tileIndexToUse;
-
-                    if (removeDuplicates)
-                    {
-                        var bitmapTile = bitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
-
-
-                        RotateFlipType flipFlag = RotateFlipType.RotateNoneFlipNone;
-
-                        var tuple = getTileWithSameBitmap(bitmapTile, exportFlipType);
-
-                        if (tuple == null)
-                        {
-                            var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
-
-                            UniqueBitmapTiles.Add(newtile);
-
-                            tileIndexToUse = (uint)tileIndex;
-
-                            tileIndex++;
-                        }
-                        else
-                        {
-                            var tile = tuple.Item1; // tile
-                            tileIndexToUse = (uint)tile.Index;
-                            flipFlag = tuple.Item2;
-                        }
-
-                        tileIndexToUse = ApplyFlip(tileIndexToUse, flipFlag, exportFlipType);
-                    }
-                    else
-                    {
-                        var bitmapTile = bitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
-                        var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
-
-                        UniqueBitmapTiles.Add(newtile);
-
-                        tileIndexToUse = (uint)tileIndex;
-
-                        tileIndex++;
-                    }
-
-                    BitmapTileMap.Map.Add(tileIndexToUse);
+                    ProcessTile(rect,
+                                bitmap,
+                                attributeBitmap, 
+                                animatedTilesBitmap,
+                                tileTypes,
+                                removeDuplicates,
+                                exportFlipType,
+                                ref tileIndex);
                 }
             }
+        }
+
+
+        public unsafe void SplitByBlocks(Bitmap bitmap, 
+                                         Bitmap attributeBitmap, 
+                                         Bitmap animatedTilesBitmap,
+                                         SplitBitmap tileTypes,
+                                         int splitWidth, 
+                                         int splitHeight, 
+                                         int blockWidth,
+                                         int blockHeight,
+                                         bool removeDuplicates, 
+                                         ExportFlipType exportFlipType)
+        {
+            int horizontalBlocks = bitmap.Width / blockWidth;
+            int verticalBlocks = bitmap.Height / blockHeight;
+
+            int tilesWidth = bitmap.Width / splitWidth;
+            int tilesHeight = bitmap.Height / splitHeight;
+
+            int tilesPerBlockX = blockWidth / splitWidth;
+            int tilesPerBlockY = blockHeight / splitHeight;
+
+            int tileIndex = 0;
+
+            BitmapTileMap = new BitmapTileMap(tilesWidth, tilesHeight);
+
+            for (int blockY = 0; blockY < verticalBlocks; blockY++)
+            {
+                for (int blockX = 0; blockX < horizontalBlocks; blockX++)
+                {
+                    int tileStartX = blockX * 2;
+                    int tileStartY = blockY * 2;
+
+                    for (int loopx = 0; loopx < tilesPerBlockX; loopx++)
+                    {
+                        for (int loopy = 0; loopy < tilesPerBlockY; loopy++)
+                        {
+                            int tileIndexX = tileStartX + loopx;
+                            int tileIndexY = tileStartY + loopy;
+
+                            int bitmapx = tileIndexX * splitWidth;
+                            int bitmapy = tileIndexY * splitHeight;
+
+                            Rectangle rect = new Rectangle(bitmapx,
+                                                           bitmapy, 
+                                                           splitWidth,
+                                                           splitHeight);
+
+                            ProcessTile(rect,
+                                        bitmap,
+                                        attributeBitmap, 
+                                        animatedTilesBitmap,
+                                        tileTypes,
+                                        removeDuplicates,
+                                        exportFlipType,
+                                        ref tileIndex);
+                        }
+                    }
+                }
+            }
+
+
+            /*
+
+            for (int tiley = 0; tiley < tilesHeight; tiley++)
+            {
+                for (int tilex = 0; tilex < tilesWidth; tilex++)
+                {
+                    int bitmapx = tilex * splitWidth;
+                    int bitmapy = tiley * splitHeight;
+
+                    Rectangle rect = new Rectangle(bitmapx,
+                                                   bitmapy, 
+                                                   splitWidth,
+                                                   splitHeight);
+
+                    ProcessTile(rect,
+                                bitmap,
+                                attributeBitmap, 
+                                animatedTilesBitmap,
+                                tileTypes,
+                                removeDuplicates,
+                                exportFlipType,
+                                ref tileIndex);
+                }
+            }
+            */
+        }
+
+        private void ProcessTile(Rectangle rect,
+                                 Bitmap bitmap,
+                                 Bitmap attributeBitmap, 
+                                 Bitmap animatedTilesBitmap,
+                                 SplitBitmap tileTypes,
+                                 bool removeDuplicates,
+                                 ExportFlipType exportFlipType,
+                                 ref int tileIndex)
+        {
+
+
+            // get attribute for tile
+            int tileAttribute = 0;
+
+            // the attribute (TILE_SOLID, etc) comes from the index of the color in the second layer
+            // of the image.
+            if (attributeBitmap != null && tileTypes != null)
+            {
+                var attributeBitmapTile = attributeBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
+
+                var foundTile = tileTypes.getTileWithSameBitmap(attributeBitmapTile, ExportFlipType.None);
+
+                if (foundTile != null)
+                    tileAttribute = foundTile.Item1.Index;
+
+                //BitmapData sourceBitmapData = attributeBitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format4bppIndexed);
+                //byte* sourceBuffer = (byte*)sourceBitmapData.Scan0.ToPointer();
+                //tileAttribute = sourceBuffer[0];
+                //tileAttribute &= 0x0f;
+                //attributeBitmap.UnlockBits(sourceBitmapData);
+
+            }
+
+            bool isAnimatedTile = false;
+
+            if (animatedTilesBitmap != null)
+            {
+                var animatedBitmapTile = animatedTilesBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
+
+                isAnimatedTile = !Utils.IsTileEmpty(animatedBitmapTile);
+            }
+
+            uint tileIndexToUse;
+
+            if (removeDuplicates)
+            {
+                var bitmapTile = bitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
+
+
+                RotateFlipType flipFlag = RotateFlipType.RotateNoneFlipNone;
+
+                var tuple = getTileWithSameBitmap(bitmapTile, exportFlipType);
+
+                if (tuple == null)
+                {
+                    var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
+
+                    UniqueBitmapTiles.Add(newtile);
+
+                    tileIndexToUse = (uint)tileIndex;
+
+                    tileIndex++;
+                }
+                else
+                {
+                    var tile = tuple.Item1; // tile
+                    tileIndexToUse = (uint)tile.Index;
+                    flipFlag = tuple.Item2;
+                }
+
+                if (isAnimatedTile)
+                {
+                    //if (!AnimatedTiles.ContainsKey(tileIndexToUse))
+                    //{
+                        AnimatedTiles[tileIndexToUse] = m_animatedTileIndex;
+                        // m_animatedTileIndex--;
+                    //}
+
+                    //tileIndexToUse = AnimatedTiles[tileIndexToUse];
+                }
+
+                tileIndexToUse = ApplyFlip(tileIndexToUse, flipFlag, exportFlipType);
+            }
+            else
+            {
+                var bitmapTile = bitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
+                var newtile = new BitmapTile(tileIndex, bitmapTile, tileAttribute);
+
+                UniqueBitmapTiles.Add(newtile);
+
+                tileIndexToUse = (uint)tileIndex;
+
+                if (isAnimatedTile)
+                {
+                    // if (!AnimatedTiles.ContainsKey(tileIndexToUse))
+                    //{
+                        AnimatedTiles[tileIndexToUse] = m_animatedTileIndex;
+                        //m_animatedTileIndex--;
+                    //}
+
+                    //tileIndexToUse = AnimatedTiles[tileIndexToUse];
+                }
+
+                tileIndex++;
+            }
+
+
+
+            BitmapTileMap.Map.Add(tileIndexToUse);
         }
 
         private uint ApplyFlip(uint tileIndexToUse, RotateFlipType flipFlag, ExportFlipType exportFlipType)
