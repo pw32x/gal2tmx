@@ -266,6 +266,9 @@ namespace gal2tmx
                                                List<uint> animatedTilesIndexes)
         {
             stringBuilder.AppendLine();
+            stringBuilder.AppendLine("u16 " + tilesetName + "VdpLocation;");
+
+            stringBuilder.AppendLine();
             stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    " + tilesetName + "_tiles,");
@@ -278,6 +281,8 @@ namespace gal2tmx
             else
                 stringBuilder.AppendLine("    NULL, // animated tile indexes count");
             stringBuilder.AppendLine("    " + animatedTilesIndexes.Count + ", // animated tile indexes count");
+
+            stringBuilder.AppendLine("    &" + tilesetName + "VdpLocation,");
 
             stringBuilder.AppendLine("};");
         }
