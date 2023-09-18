@@ -33,7 +33,7 @@ namespace gal2tmx
         private bool ForceOverwrite { get; set; } = false;
         private bool IsTilesetAnimated { get; set; } = false;
         private int TilesetAnimationSpeed { get; set; } = 10;
-        private string TileTypesPath { get; set; } //  = @"..\..\..\assets\themes\tiletypes.gal";
+        private string TileTypesPath { get; set; }
 
         public Gal2Tmx()
         {
@@ -107,11 +107,14 @@ namespace gal2tmx
 
             var ggFrameBitmap = frame.Layers[0].CreateBitmap();
 
-            Bitmap ggAttributeBitmap = null;
+            Bitmap ggTileTypesBitmap = null;
 
-            if (ggObject.Frames[0].Layers.Length > 1)
-                ggAttributeBitmap = frame.Layers[1].CreateBitmap();
+            var tiletypesLayer = frame.Layers.FirstOrDefault(l => l.Name.StartsWith("tiletypes"));
 
+            if (tiletypesLayer != null)
+            {
+                ggTileTypesBitmap = tiletypesLayer.CreateBitmap();
+            }
 
             Bitmap animatedTilesBitmap = null;
             var animatedTilesLayer = frame.Layers.FirstOrDefault(l => l.Name.StartsWith("anim"));
@@ -136,7 +139,7 @@ namespace gal2tmx
             // split the image into blocks.
             var tiledTilesetSplitBitmap = new SplitBitmap();
             tiledTilesetSplitBitmap.SplitLinearly(ggFrame4bppBitmap, 
-                                                  ggAttributeBitmap, 
+                                                  ggTileTypesBitmap, 
                                                   animatedTilesBitmap,
                                                   tileTypesblocks, 
                                                   metatileWidth, 
@@ -256,7 +259,7 @@ namespace gal2tmx
                 if (arg == "-animatedtilesetspeed")
                     TilesetAnimationSpeed = int.Parse(arg);
 
-                if (arg == "-tiletypesgal")
+                if (arg == "-tiletypes")
                 {
                     if (loop + 1 < args.Length)
                     {

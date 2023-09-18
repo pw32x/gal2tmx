@@ -56,7 +56,7 @@ namespace gal2tmx
         }
 
         public unsafe void SplitLinearly(Bitmap bitmap, 
-                                         Bitmap attributeBitmap, 
+                                         Bitmap tileTypesBitmap, 
                                          Bitmap animatedTilesBitmap,
                                          SplitBitmap tileTypes,
                                          int splitWidth, 
@@ -87,7 +87,7 @@ namespace gal2tmx
 
                     ProcessTile(rect,
                                 bitmap,
-                                attributeBitmap, 
+                                tileTypesBitmap, 
                                 animatedTilesBitmap,
                                 tileTypes,
                                 removeDuplicates,
@@ -187,7 +187,7 @@ namespace gal2tmx
 
         private void ProcessTile(Rectangle rect,
                                  Bitmap bitmap,
-                                 Bitmap attributeBitmap, 
+                                 Bitmap tileTypesBitmap, 
                                  Bitmap animatedTilesBitmap,
                                  SplitBitmap tileTypes,
                                  bool removeDuplicates,
@@ -201,9 +201,9 @@ namespace gal2tmx
 
             // the attribute (TILE_SOLID, etc) comes from the index of the color in the second layer
             // of the image.
-            if (attributeBitmap != null && tileTypes != null)
+            if (tileTypesBitmap != null && tileTypes != null)
             {
-                var attributeBitmapTile = attributeBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
+                var attributeBitmapTile = tileTypesBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
 
                 var foundTile = tileTypes.getTileWithSameBitmap(attributeBitmapTile, ExportFlipType.None);
 
