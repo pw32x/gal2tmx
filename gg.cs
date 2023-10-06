@@ -470,7 +470,7 @@ namespace GraphicsGaleWrapper
         private GaleObject galeObject;
         private int frameIndex;
 
-        public string Name { get; private set; }
+        public string Name { get; private set; } = "";
         public string InternalName { get; private set; }
 
         public int LayerCount { get; private set; }
@@ -514,12 +514,13 @@ namespace GraphicsGaleWrapper
 
             InternalName = gg.GetFrameName(galeObject.Handle, frameIndex);
 
-            Name = InternalName
-                .Replace("%framenumber%", (frameIndex + 1).ToString())
-                .Replace("%framenumber_zero%", (frameIndex + 1).ToString(galeObject._ZeroDigitFormat))
-                .Replace("%frameindex%", frameIndex.ToString())
-                .Replace("%frameindex_zero%", frameIndex.ToString(galeObject._ZeroDigitFormat));
-
+            if (InternalName != null)
+            {
+                Name = InternalName?.Replace("%framenumber%", (frameIndex + 1).ToString())
+                                    .Replace("%framenumber_zero%", (frameIndex + 1).ToString(galeObject._ZeroDigitFormat))
+                                    .Replace("%frameindex%", frameIndex.ToString())
+                                    .Replace("%frameindex_zero%", frameIndex.ToString(galeObject._ZeroDigitFormat));
+            }
 
 
             TransparentColor = gg.GetFrameTransparentColor(galeObject.Handle, this.frameIndex);

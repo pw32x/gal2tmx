@@ -17,6 +17,7 @@ namespace gal2tmx
 
         private string DestinationFolder { get; set; }
         private string TilesetDestinationFolder { get; set; }
+        private string AnimatedTilesetDestinationFolder { get; set; }
         private string SourceName { get; set; }
         private string SourcePath { get; set; }
         private string TilemapDestinationPath { get; set; }
@@ -32,7 +33,6 @@ namespace gal2tmx
         // optional flags
         private bool ForceOverwrite { get; set; } = false;
         private bool IsTilesetAnimated { get; set; } = false;
-        private int TilesetAnimationSpeed { get; set; } = 10;
         private string TileTypesPath { get; set; }
 
         public Gal2Tmx()
@@ -86,7 +86,6 @@ namespace gal2tmx
                 tileTypesblocks = new SplitBitmap();
                 tileTypesblocks.SplitLinearly(tileTypes4bppBitmap, 
                                               null, 
-                                              null, 
                                               null,
                                               metatileWidth, 
                                               metatileHeight, 
@@ -116,14 +115,6 @@ namespace gal2tmx
                 ggTileTypesBitmap = tiletypesLayer.CreateBitmap();
             }
 
-            Bitmap animatedTilesBitmap = null;
-            var animatedTilesLayer = frame.Layers.FirstOrDefault(l => l.Name.StartsWith("anim"));
-
-            if (animatedTilesLayer != null)
-            {
-                animatedTilesBitmap = animatedTilesLayer.CreateBitmap();
-            }
-
             /*
             System.IO.DirectoryInfo di = new DirectoryInfo(testResultsFolder);
             foreach (FileInfo file in di.GetFiles())
@@ -140,11 +131,10 @@ namespace gal2tmx
             var tiledTilesetSplitBitmap = new SplitBitmap();
             tiledTilesetSplitBitmap.SplitLinearly(ggFrame4bppBitmap, 
                                                   ggTileTypesBitmap, 
-                                                  animatedTilesBitmap,
                                                   tileTypesblocks, 
                                                   metatileWidth, 
                                                   metatileHeight, 
-                                                  !IsTilesetAnimated, 
+                                                  true, 
                                                   SplitBitmap.ExportFlipType.None);
 
             int rowWidth = IsTilesetAnimated ? 1 : 10;
@@ -161,7 +151,6 @@ namespace gal2tmx
                                metatileWidth, 
                                metatileHeight,
                                IsTilesetAnimated,
-                               TilesetAnimationSpeed,
                                tiledTilesetSplitBitmap.UniqueBitmapTiles);
 
             if (!IsTilesetAnimated)
@@ -182,20 +171,14 @@ namespace gal2tmx
             int tileWidth = 8;
             int tileHeight = 8;
 
-            // don't reduce tiles if it's an animated tilset
-            var flipType = IsTilesetAnimated ? SplitBitmap.ExportFlipType.None : SplitBitmap.ExportFlipType.SegaMasterSystem;
-
             var tilesetSplitBitmap = new SplitBitmap();
             tilesetSplitBitmap.SplitLinearly(tiledTilesetBitmap, 
-                                             null, 
                                              null, 
                                              null,
                                              tileWidth, 
                                              tileHeight,
-                                             //metatileWidth,
-                                             //metatileHeight, 
-                                             !IsTilesetAnimated, 
-                                             flipType);
+                                             true,
+                                             SplitBitmap.ExportFlipType.SegaMasterSystem);
 
             Bitmap tilesetBitmap = null;
 
@@ -206,9 +189,16 @@ namespace gal2tmx
 
             TilesetUtils.ExportTileset(TilesetDestinationFolder, 
                                        TilesetFilename, 
+                                       SourceName,
                                        tilesetSplitBitmap, 
-                                       tiledTilesetSplitBitmap.AnimatedTiles,
                                        IsTilesetAnimated);
+
+            if (IsTilesetAnimated)
+            {
+                // copy .gal to destination folder
+
+                File.Copy(SourcePath, AnimatedTilesetDestinationFolder + SourceName + ".tileanimation.gal", true);
+            }
 
             Console.WriteLine("Conversion complete.");
 
@@ -256,9 +246,6 @@ namespace gal2tmx
                     IsTilesetAnimated = true;
                 }
 
-                if (arg == "-animatedtilesetspeed")
-                    TilesetAnimationSpeed = int.Parse(arg);
-
                 if (arg == "-tiletypes")
                 {
                     if (loop + 1 < args.Length)
@@ -292,6 +279,27 @@ namespace gal2tmx
                         {
                             Directory.CreateDirectory(TilesetDestinationFolder);
                         }
+                    }
+                }
+
+                // where the copied animated tile .gal file will be copied
+                if (arg == "-animationdest")
+                {
+                    if (loop + 1 < args.Length)
+                    {
+                        AnimatedTilesetDestinationFolder = args[loop + 1];
+                        if (AnimatedTilesetDestinationFolder.StartsWith("-"))
+                        {
+                            throw new Exception("No valid value given for animation destination");
+                        }
+
+                        AnimatedTilesetDestinationFolder += '\\';
+
+                        if (!Directory.Exists(AnimatedTilesetDestinationFolder))
+                        {
+                            Directory.CreateDirectory(AnimatedTilesetDestinationFolder);
+                        }
+
                     }
                 }
             }

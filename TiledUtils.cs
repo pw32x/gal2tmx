@@ -118,7 +118,6 @@ namespace gal2tmx
                                    int tileWidth, 
                                    int tileHeight,
                                    bool mAnimated,
-                                   int animationSpeed,
                                    List<BitmapTile> tiles)
         {
             int tilecount = (bitmapWidth / tileWidth) * (bitmapHeight / tileHeight);
@@ -130,8 +129,6 @@ namespace gal2tmx
             {
                 stringBuilder.Append(" <properties>\n");
                 stringBuilder.Append("   <property name=\"animated\" type=\"int\" value=\"1\"/>\n");
-                stringBuilder.Append("   <property name=\"animationtime\" type=\"int\" value=\"" + animationSpeed + "\"/>\n");
-                stringBuilder.Append("   <property name=\"stride\" type=\"int\" value=\"4\"/>\n");
                 stringBuilder.Append(" </properties>\n");
             }
             stringBuilder.Append("<image source=\"" + tilesetBitmapName + "\" width=\"" + bitmapWidth + "\" height=\"" + bitmapHeight + "\" />\n");

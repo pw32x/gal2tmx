@@ -47,9 +47,6 @@ namespace gal2tmx
 
         public BitmapTileMap BitmapTileMap { get; private set; }
 
-        public Dictionary<uint, uint> AnimatedTiles { get; } = new Dictionary<uint, uint>();
-        private uint m_animatedTileIndex = 255;
-
         public SplitBitmap()
         {
 
@@ -57,7 +54,6 @@ namespace gal2tmx
 
         public unsafe void SplitLinearly(Bitmap bitmap, 
                                          Bitmap tileTypesBitmap, 
-                                         Bitmap animatedTilesBitmap,
                                          SplitBitmap tileTypes,
                                          int splitWidth, 
                                          int splitHeight, 
@@ -88,7 +84,6 @@ namespace gal2tmx
                     ProcessTile(rect,
                                 bitmap,
                                 tileTypesBitmap, 
-                                animatedTilesBitmap,
                                 tileTypes,
                                 removeDuplicates,
                                 exportFlipType,
@@ -100,7 +95,6 @@ namespace gal2tmx
 
         public unsafe void SplitByBlocks(Bitmap bitmap, 
                                          Bitmap attributeBitmap, 
-                                         Bitmap animatedTilesBitmap,
                                          SplitBitmap tileTypes,
                                          int splitWidth, 
                                          int splitHeight, 
@@ -147,7 +141,6 @@ namespace gal2tmx
                             ProcessTile(rect,
                                         bitmap,
                                         attributeBitmap, 
-                                        animatedTilesBitmap,
                                         tileTypes,
                                         removeDuplicates,
                                         exportFlipType,
@@ -175,7 +168,6 @@ namespace gal2tmx
                     ProcessTile(rect,
                                 bitmap,
                                 attributeBitmap, 
-                                animatedTilesBitmap,
                                 tileTypes,
                                 removeDuplicates,
                                 exportFlipType,
@@ -188,7 +180,6 @@ namespace gal2tmx
         private void ProcessTile(Rectangle rect,
                                  Bitmap bitmap,
                                  Bitmap tileTypesBitmap, 
-                                 Bitmap animatedTilesBitmap,
                                  SplitBitmap tileTypes,
                                  bool removeDuplicates,
                                  ExportFlipType exportFlipType,
@@ -216,15 +207,6 @@ namespace gal2tmx
                 //tileAttribute &= 0x0f;
                 //attributeBitmap.UnlockBits(sourceBitmapData);
 
-            }
-
-            bool isAnimatedTile = false;
-
-            if (animatedTilesBitmap != null)
-            {
-                var animatedBitmapTile = animatedTilesBitmap.Clone(rect, System.Drawing.Imaging.PixelFormat.DontCare);
-
-                isAnimatedTile = !Utils.IsTileEmpty(animatedBitmapTile);
             }
 
             uint tileIndexToUse;
@@ -255,17 +237,6 @@ namespace gal2tmx
                     flipFlag = tuple.Item2;
                 }
 
-                if (isAnimatedTile)
-                {
-                    //if (!AnimatedTiles.ContainsKey(tileIndexToUse))
-                    //{
-                        AnimatedTiles[tileIndexToUse] = m_animatedTileIndex;
-                        // m_animatedTileIndex--;
-                    //}
-
-                    //tileIndexToUse = AnimatedTiles[tileIndexToUse];
-                }
-
                 tileIndexToUse = ApplyFlip(tileIndexToUse, flipFlag, exportFlipType);
             }
             else
@@ -276,17 +247,6 @@ namespace gal2tmx
                 UniqueBitmapTiles.Add(newtile);
 
                 tileIndexToUse = (uint)tileIndex;
-
-                if (isAnimatedTile)
-                {
-                    // if (!AnimatedTiles.ContainsKey(tileIndexToUse))
-                    //{
-                        AnimatedTiles[tileIndexToUse] = m_animatedTileIndex;
-                        //m_animatedTileIndex--;
-                    //}
-
-                    //tileIndexToUse = AnimatedTiles[tileIndexToUse];
-                }
 
                 tileIndex++;
             }
