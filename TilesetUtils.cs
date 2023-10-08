@@ -13,14 +13,15 @@ namespace gal2tmx
                                            string tilesetName, 
                                            string sourceName,
                                            SplitBitmap tilesetSplitBitmap, 
-                                           bool animated)
+                                           bool animated,
+                                           bool isBreakable)
         {
             string headerName = tilesetName + ".h";
             string headerPath = destinationFolder + headerName;
             string sourcePath = destinationFolder + tilesetName + ".c";
 
             WriteHeader(headerPath, tilesetName, animated);
-            WriteSource(sourcePath, headerName, tilesetName, sourceName, tilesetSplitBitmap, animated);
+            WriteSource(sourcePath, headerName, tilesetName, sourceName, tilesetSplitBitmap, animated, isBreakable);
         }
 
 
@@ -239,7 +240,8 @@ namespace gal2tmx
 
         private static void WriteTilesetStruct(StringBuilder stringBuilder, 
                                                string tilesetName,
-                                               SplitBitmap tilesetSplitBitmap)
+                                               SplitBitmap tilesetSplitBitmap,
+                                               bool isBreakable)
         {
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("u16 " + tilesetName + "VdpLocation;");
@@ -248,11 +250,11 @@ namespace gal2tmx
             stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    TILESET_RESOURCE_TYPE,");
-            stringBuilder.AppendLine("    " + tilesetName + "_tiles,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
-            stringBuilder.AppendLine("    " + tilesetSplitBitmap.UniqueBitmapTiles.Count + ", // unique tile count");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.BitmapTileMap.Map.Count / 4 + ", // 16x16 metatiles count");
-
+            stringBuilder.AppendLine("    " + (isBreakable ? "TRUE" : "FALSE") + ", // is breakable");
+            stringBuilder.AppendLine("    " + tilesetName + "_tiles,");
+            stringBuilder.AppendLine("    " + tilesetSplitBitmap.UniqueBitmapTiles.Count + ", // unique tile count");
             stringBuilder.AppendLine("    &" + tilesetName + "VdpLocation,");
 
             stringBuilder.AppendLine("};");
@@ -261,7 +263,8 @@ namespace gal2tmx
         private static void WriteAnimatedTilesetStruct(StringBuilder stringBuilder, 
                                                        string tilesetName,
                                                        string sourceName,
-                                                       SplitBitmap tilesetSplitBitmap)
+                                                       SplitBitmap tilesetSplitBitmap,
+                                                       bool isBreakable)
         {
              stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
 
@@ -271,6 +274,7 @@ namespace gal2tmx
             stringBuilder.AppendLine("    ANIMATED_TILESET_RESOURCE_TYPE,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.BitmapTileMap.Map.Count / 4 + ", // 16x16 metatiles count");
+            stringBuilder.AppendLine("    " + (isBreakable ? "TRUE" : "FALSE") + ", // is breakable");
             stringBuilder.AppendLine("    &" + sourceName + ", // animation");
             stringBuilder.AppendLine("};");
         }
@@ -280,7 +284,8 @@ namespace gal2tmx
                                         string tilesetName, 
                                         string sourceName,
                                         SplitBitmap tilesetSplitBitmap, 
-                                        bool animated)
+                                        bool animated,
+                                        bool isBreakable)
         {
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -295,11 +300,11 @@ namespace gal2tmx
             if (!animated)
             {
                 WriteTilesetTiles(stringBuilder, tilesetName, tilesetSplitBitmap.UniqueBitmapTiles);
-                WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap);
+                WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap, isBreakable);
             }
             else
             {
-                WriteAnimatedTilesetStruct(stringBuilder, tilesetName, sourceName, tilesetSplitBitmap);
+                WriteAnimatedTilesetStruct(stringBuilder, tilesetName, sourceName, tilesetSplitBitmap, isBreakable);
             }
 
             System.IO.StreamWriter file = new System.IO.StreamWriter(sourcePath);

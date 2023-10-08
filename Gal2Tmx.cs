@@ -34,6 +34,9 @@ namespace gal2tmx
         private bool ForceOverwrite { get; set; } = false;
         private bool IsTilesetOnly { get; set; } = false;
         private bool IsTilesetAnimated { get; set; } = false;
+
+        private bool IsBreakable { get; set; } = false;
+
         private string TileTypesPath { get; set; }
 
         public Gal2Tmx()
@@ -195,7 +198,8 @@ namespace gal2tmx
                                        TilesetFilename, 
                                        SourceName,
                                        tilesetSplitBitmap, 
-                                       IsTilesetAnimated);
+                                       IsTilesetAnimated,
+                                       IsBreakable);
 
             if (IsTilesetAnimated)
             {
@@ -325,6 +329,11 @@ namespace gal2tmx
                 if (token == "tileset")
                 {
                     IsTilesetOnly = true;
+                }
+
+                if (token == "breakable")
+                {
+                    IsBreakable = true;
                 }
             }
 
