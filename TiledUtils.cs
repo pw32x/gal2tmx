@@ -117,18 +117,22 @@ namespace gal2tmx
                                    int bitmapHeight, 
                                    int tileWidth, 
                                    int tileHeight,
-                                   bool mAnimated,
+                                   bool isAnimated,
+                                   int numtilesperframe,
                                    List<BitmapTile> tiles)
         {
             int tilecount = (bitmapWidth / tileWidth) * (bitmapHeight / tileHeight);
 
+            
+
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
             stringBuilder.Append("<tileset name=\"" + tilesetName + "\" tilewidth=\"" + tileWidth + "\" tileheight=\"" + tileHeight + "\" tilecount=\"" + tilecount + "\">\n");
-            if (mAnimated)
+            if (isAnimated)
             {
                 stringBuilder.Append(" <properties>\n");
                 stringBuilder.Append("   <property name=\"animated\" type=\"int\" value=\"1\"/>\n");
+                stringBuilder.Append("   <property name=\"numtilesperframe\" type=\"uint\" value=\"" + numtilesperframe + "\"/>\n");
                 stringBuilder.Append(" </properties>\n");
             }
             stringBuilder.Append("<image source=\"" + tilesetBitmapName + "\" width=\"" + bitmapWidth + "\" height=\"" + bitmapHeight + "\" />\n");

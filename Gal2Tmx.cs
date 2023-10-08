@@ -32,6 +32,7 @@ namespace gal2tmx
 
         // optional flags
         private bool ForceOverwrite { get; set; } = false;
+        private bool IsTilesetOnly { get; set; } = false;
         private bool IsTilesetAnimated { get; set; } = false;
         private string TileTypesPath { get; set; }
 
@@ -142,31 +143,6 @@ namespace gal2tmx
             Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles, rowWidth, metatileWidth, metatileHeight);
             tiledTilesetBitmap.Save(TiledTilesetBmpDestinationPath, ImageFormat.Bmp);
 
-            // Save the tsx
-            TiledUtils.SaveTSX(TSXDestinationPath,
-                               TiledTilesetBitmapName,
-                               TiledTilesetName,
-                               tiledTilesetBitmap.Width,
-                               tiledTilesetBitmap.Height,
-                               metatileWidth, 
-                               metatileHeight,
-                               IsTilesetAnimated,
-                               tiledTilesetSplitBitmap.UniqueBitmapTiles);
-
-            if (!IsTilesetAnimated)
-            {
-                // save the tmx but not for animated tilesets
-
-                string oldFilename = Path.ChangeExtension(TilemapDestinationPath, "tmx.old");
-                if (File.Exists(oldFilename))
-                {
-                    File.Delete(oldFilename);
-                    System.IO.File.Move(TilemapDestinationPath, oldFilename);
-                }
-
-                TiledUtils.SaveTMX(TilemapDestinationPath, TiledTilesetFilename, metatileWidth, metatileHeight, tiledTilesetSplitBitmap.BitmapTileMap);
-            }
-
             // split the blocks into a tileset
             int tileWidth = 8;
             int tileHeight = 8;
@@ -179,6 +155,34 @@ namespace gal2tmx
                                              tileHeight,
                                              true,
                                              SplitBitmap.ExportFlipType.SegaMasterSystem);
+
+            // Save the tsx
+            TiledUtils.SaveTSX(TSXDestinationPath,
+                               TiledTilesetBitmapName,
+                               TiledTilesetName,
+                               tiledTilesetBitmap.Width,
+                               tiledTilesetBitmap.Height,
+                               metatileWidth, 
+                               metatileHeight,
+                               IsTilesetAnimated,
+                               tilesetSplitBitmap.UniqueBitmapTiles.Count,
+                               tiledTilesetSplitBitmap.UniqueBitmapTiles);
+
+            if (!IsTilesetAnimated && !IsTilesetOnly)
+            {
+                // save the tmx but not for animated or just tilesets
+
+                string oldFilename = Path.ChangeExtension(TilemapDestinationPath, "tmx.old");
+                if (File.Exists(oldFilename))
+                {
+                    File.Delete(oldFilename);
+                    System.IO.File.Move(TilemapDestinationPath, oldFilename);
+                }
+
+                TiledUtils.SaveTMX(TilemapDestinationPath, TiledTilesetFilename, metatileWidth, metatileHeight, tiledTilesetSplitBitmap.BitmapTileMap);
+            }
+
+
 
             Bitmap tilesetBitmap = null;
 
@@ -197,7 +201,7 @@ namespace gal2tmx
             {
                 // copy .gal to destination folder
 
-                File.Copy(SourcePath, AnimatedTilesetDestinationFolder + SourceName + ".tileanimation.gal", true);
+                File.Copy(SourcePath, AnimatedTilesetDestinationFolder + SourceName + ".animatedtileset.gal", true);
             }
 
             Console.WriteLine("Conversion complete.");
@@ -241,10 +245,6 @@ namespace gal2tmx
                 if (arg == "-y" || arg == "-o")
                     ForceOverwrite = true;
 
-                if (arg == "-animatedtileset")
-                {
-                    IsTilesetAnimated = true;
-                }
 
                 if (arg == "-tiletypes")
                 {
@@ -310,8 +310,25 @@ namespace gal2tmx
             int numPaths = 1;
 
             SourcePath = args[0];
-            SourceName = Path.GetFileNameWithoutExtension(SourcePath);
 
+            string sourceNameAndOptions = Path.GetFileNameWithoutExtension(SourcePath);
+
+            var tokens = sourceNameAndOptions.Split('.');
+
+            foreach (var token in tokens)
+            {
+                if (token == "animatedtileset")
+                {
+                    IsTilesetAnimated = true;
+                }
+
+                if (token == "tileset")
+                {
+                    IsTilesetOnly = true;
+                }
+            }
+
+            SourceName = tokens[0];
 
             if (args.Length == 1)
             {
@@ -373,10 +390,10 @@ namespace gal2tmx
         //         0 to stop
         private int CheckOverwrites()
         {
-            if ((!IsTilesetAnimated && File.Exists(TilemapDestinationPath)) ||
+            if ((!IsTilesetAnimated && !IsTilesetOnly && File.Exists(TilemapDestinationPath)) ||
                 File.Exists(TSXDestinationPath) ||
                 File.Exists(TilesetBmpDestinationPath) ||
-                (!IsTilesetAnimated && File.Exists(TiledTilesetBmpDestinationPath + ".h") || File.Exists(TiledTilesetBmpDestinationPath + ".c")))
+                (!IsTilesetAnimated && !IsTilesetOnly && File.Exists(TiledTilesetBmpDestinationPath + ".h") || File.Exists(TiledTilesetBmpDestinationPath + ".c")))
             {
                 Console.WriteLine("Destination files already exist. Overwrite?");
 
