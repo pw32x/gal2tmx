@@ -59,22 +59,7 @@ namespace gal2tmx
         public const int TILE_SLOPE30RIGHT2 = 8;
         public const int TILE_SLOPE30LEFT1 = 9;
         public const int TILE_SLOPE30LEFT2 = 10;
-        public const int TILE_SLOPE45RIGHTFLAT = 11;
-        public const int TILE_SLOPE45LEFTFLAT	= 12;
-        public const int TILE_SLOPE30RIGHTFLAT	= 13;
-        public const int TILE_SLOPE30LEFTFLAT	= 14;
-        public const int TILE_SLOPEHALFHEIGHT = 15;
-
-        public const int TILE_SLOPE15RIGHT1 = 16;
-        public const int TILE_SLOPE15RIGHT2 = 17;
-        public const int TILE_SLOPE15RIGHT3 = 18;
-        public const int TILE_SLOPE15RIGHT4 = 19;
-        public const int TILE_SLOPE15LEFT1 = 20;
-        public const int TILE_SLOPE15LEFT2 = 21;
-        public const int TILE_SLOPE15LEFT3 = 22;
-        public const int TILE_SLOPE15LEFT4 = 23;
-
-        public const int TILE_WATER = 24;
+        public const int TILE_WATER = 11;
 
 
         public static string TileAttributeToString(int tileAttribute)
@@ -91,19 +76,6 @@ namespace gal2tmx
                 case TILE_SLOPE30RIGHT2: return "slope30right2";
                 case TILE_SLOPE30LEFT1: return "slope30left1";
                 case TILE_SLOPE30LEFT2: return "slope30left2";
-                case TILE_SLOPE45RIGHTFLAT: return "slope45rightflat";
-                case TILE_SLOPE45LEFTFLAT: return "slope45leftflat";
-                case TILE_SLOPE30RIGHTFLAT: return "slope30rightflat";
-                case TILE_SLOPE30LEFTFLAT: return "slope30leftflat";
-                case TILE_SLOPEHALFHEIGHT: return "slopehalfheight";
-                case TILE_SLOPE15RIGHT1: return "slope15right1";
-                case TILE_SLOPE15RIGHT2: return "slope15right2";
-                case TILE_SLOPE15RIGHT3: return "slope15right3";
-                case TILE_SLOPE15RIGHT4: return "slope15right4";
-                case TILE_SLOPE15LEFT1:  return "slope15left1";
-                case TILE_SLOPE15LEFT2: return "slope15left2";
-                case TILE_SLOPE15LEFT3: return "slope15left3";
-                case TILE_SLOPE15LEFT4: return "slope15left4";
                 case TILE_WATER: return "water";
             }
 
