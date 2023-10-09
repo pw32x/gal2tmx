@@ -249,7 +249,7 @@ namespace gal2tmx
             if (isBreakable)
             {
                 stringBuilder.AppendLine();
-                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(unsigned short blockx, unsigned short blocky, const Resource* resource); // breakable collision function");
+                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(const Tileset* tileset, unsigned short blockx, unsigned short blocky); // breakable collision function");
                 stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
             }
 
@@ -264,7 +264,7 @@ namespace gal2tmx
             {
                 stringBuilder.AppendLine("    TRUE, // is breakable");
                 stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
-                stringBuilder.AppendLine("    " + tilesetName + "_Resource, // breakable resource");
+                stringBuilder.AppendLine("    &" + tilesetName + "_Resource, // breakable resource");
             }
             else
             {
@@ -293,7 +293,7 @@ namespace gal2tmx
             if (isBreakable)
             {
                 stringBuilder.AppendLine();
-                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(unsigned short blockx, unsigned short blocky, const Resource* resource); // breakable collision function");
+                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(const Tileset* tileset, unsigned short blockx, unsigned short blocky); // breakable collision function");
                 stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
             }
 
@@ -308,7 +308,7 @@ namespace gal2tmx
             {
                 stringBuilder.AppendLine("    TRUE, // is breakable");
                 stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
-                stringBuilder.AppendLine("    " + tilesetName + "_Resource, // breakable resource");
+                stringBuilder.AppendLine("    &" + tilesetName + "_Resource, // breakable resource");
             }
             else
             {
