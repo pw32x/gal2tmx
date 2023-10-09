@@ -246,13 +246,35 @@ namespace gal2tmx
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("u16 " + tilesetName + "VdpLocation;");
 
+            if (isBreakable)
+            {
+                stringBuilder.AppendLine();
+                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(unsigned short blockx, unsigned short blocky, const Resource* resource); // breakable collision function");
+                stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
+            }
+
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    TILESET_RESOURCE_TYPE,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.BitmapTileMap.Map.Count / 4 + ", // 16x16 metatiles count");
-            stringBuilder.AppendLine("    " + (isBreakable ? "TRUE" : "FALSE") + ", // is breakable");
+
+            if (isBreakable)
+            {
+                stringBuilder.AppendLine("    TRUE, // is breakable");
+                stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
+                stringBuilder.AppendLine("    " + tilesetName + "_Resource, // breakable resource");
+            }
+            else
+            {
+                stringBuilder.AppendLine("    FALSE, // not breakable");
+                stringBuilder.AppendLine("    NULL, // breakable collision function");
+                stringBuilder.AppendLine("    NULL, // breakable resource");
+            }
+
+
+
             stringBuilder.AppendLine("    " + tilesetName + "_tiles,");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.UniqueBitmapTiles.Count + ", // unique tile count");
             stringBuilder.AppendLine("    &" + tilesetName + "VdpLocation,");
@@ -268,13 +290,34 @@ namespace gal2tmx
         {
              stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
 
+            if (isBreakable)
+            {
+                stringBuilder.AppendLine();
+                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(unsigned short blockx, unsigned short blocky, const Resource* resource); // breakable collision function");
+                stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
+            }
+
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const AnimatedTileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    ANIMATED_TILESET_RESOURCE_TYPE,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
             stringBuilder.AppendLine("    " + tilesetSplitBitmap.BitmapTileMap.Map.Count / 4 + ", // 16x16 metatiles count");
-            stringBuilder.AppendLine("    " + (isBreakable ? "TRUE" : "FALSE") + ", // is breakable");
+
+            if (isBreakable)
+            {
+                stringBuilder.AppendLine("    TRUE, // is breakable");
+                stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
+                stringBuilder.AppendLine("    " + tilesetName + "_Resource, // breakable resource");
+            }
+            else
+            {
+                stringBuilder.AppendLine("    FALSE, // not breakable");
+                stringBuilder.AppendLine("    NULL, // breakable collision function");
+                stringBuilder.AppendLine("    NULL, // breakable resource");
+            }
+
+
             stringBuilder.AppendLine("    &" + sourceName + ", // animation");
             stringBuilder.AppendLine("};");
         }
