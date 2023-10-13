@@ -246,13 +246,6 @@ namespace gal2tmx
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("u16 " + tilesetName + "VdpLocation;");
 
-            if (isBreakable)
-            {
-                stringBuilder.AppendLine();
-                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(const Tileset* tileset, unsigned short blockx, unsigned short blocky); // breakable collision function");
-                stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
-            }
-
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
@@ -263,14 +256,10 @@ namespace gal2tmx
             if (isBreakable)
             {
                 stringBuilder.AppendLine("    TRUE, // is breakable");
-                stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
-                stringBuilder.AppendLine("    &" + tilesetName + "_Resource, // breakable resource");
             }
             else
             {
                 stringBuilder.AppendLine("    FALSE, // not breakable");
-                stringBuilder.AppendLine("    NULL, // breakable collision function");
-                stringBuilder.AppendLine("    NULL, // breakable resource");
             }
 
 
@@ -290,13 +279,6 @@ namespace gal2tmx
         {
              stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
 
-            if (isBreakable)
-            {
-                stringBuilder.AppendLine();
-                stringBuilder.AppendLine("void " + tilesetName + "_TilesetFunction(const Tileset* tileset, unsigned short blockx, unsigned short blocky); // breakable collision function");
-                stringBuilder.AppendLine("extern Resource* " + tilesetName + "_Resource; // breakable resource");
-            }
-
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const AnimatedTileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
@@ -307,14 +289,10 @@ namespace gal2tmx
             if (isBreakable)
             {
                 stringBuilder.AppendLine("    TRUE, // is breakable");
-                stringBuilder.AppendLine("    " + tilesetName + "_TilesetFunction, // breakable tileset function");
-                stringBuilder.AppendLine("    &" + tilesetName + "_Resource, // breakable resource");
             }
             else
             {
                 stringBuilder.AppendLine("    FALSE, // not breakable");
-                stringBuilder.AppendLine("    NULL, // breakable collision function");
-                stringBuilder.AppendLine("    NULL, // breakable resource");
             }
 
 
