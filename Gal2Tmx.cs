@@ -141,9 +141,12 @@ namespace gal2tmx
                                                   true, 
                                                   SplitBitmap.ExportFlipType.None);
 
-            int rowWidth = IsTilesetAnimated ? 1 : 10;
+            int rowWidth = IsTilesetAnimated ? 1 : Math.Min(tiledTilesetSplitBitmap.UniqueBitmapTiles.Count(), 10);
 
-            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles, rowWidth, metatileWidth, metatileHeight);
+            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles, 
+                                                                      rowWidth, 
+                                                                      metatileWidth, 
+                                                                      metatileHeight);
             tiledTilesetBitmap.Save(TiledTilesetBmpDestinationPath, ImageFormat.Bmp);
 
             // split the blocks into a tileset
