@@ -13,6 +13,7 @@ namespace gal2tmx
                                            string tilesetName, 
                                            string sourceName,
                                            SplitBitmap tilesetSplitBitmap, 
+                                           string bank,
                                            bool animated,
                                            bool isBreakable)
         {
@@ -20,13 +21,14 @@ namespace gal2tmx
             string headerPath = destinationFolder + headerName;
             string sourcePath = destinationFolder + tilesetName + ".c";
 
-            WriteHeader(headerPath, tilesetName, animated);
-            WriteSource(sourcePath, headerName, tilesetName, sourceName, tilesetSplitBitmap, animated, isBreakable);
+            WriteHeader(headerPath, tilesetName, bank, animated);
+            WriteSource(sourcePath, headerName, tilesetName, sourceName, tilesetSplitBitmap, bank, animated, isBreakable);
         }
 
 
         private static void WriteHeader(string headerPath, 
                                         string tilesetName,
+                                        string bank,
                                         bool animated)
         {
 
@@ -39,9 +41,9 @@ namespace gal2tmx
             stringBuilder.AppendLine("");
 
             if (animated)
-                stringBuilder.AppendLine("RESOURCE extern const AnimatedTileset " + tilesetName + ";");
+                stringBuilder.AppendLine("RESOURCE(" + bank + ") extern const AnimatedTileset " + tilesetName + ";");
             else
-                stringBuilder.AppendLine("RESOURCE extern const Tileset " + tilesetName + ";");
+                stringBuilder.AppendLine("RESOURCE(" + bank + ") extern const Tileset " + tilesetName + ";");
 
             stringBuilder.AppendLine("");
             stringBuilder.AppendLine("#endif");
@@ -241,13 +243,14 @@ namespace gal2tmx
         private static void WriteTilesetStruct(StringBuilder stringBuilder, 
                                                string tilesetName,
                                                SplitBitmap tilesetSplitBitmap,
+                                               string bank,
                                                bool isBreakable)
         {
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("u16 " + tilesetName + "VdpLocation;");
 
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine("const Tileset " + tilesetName + " = ");
+            stringBuilder.AppendLine("RESOURCE(" + bank + ") const Tileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    TILESET_RESOURCE_TYPE,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
@@ -275,12 +278,13 @@ namespace gal2tmx
                                                        string tilesetName,
                                                        string sourceName,
                                                        SplitBitmap tilesetSplitBitmap,
+                                                       string bank,
                                                        bool isBreakable)
         {
-             stringBuilder.AppendLine("RESOURCE extern TileAnimation " + sourceName + "; // the animation this tileset needs");
+             stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
 
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine("const AnimatedTileset " + tilesetName + " = ");
+            stringBuilder.AppendLine("RESOURCE(" + bank + ") const AnimatedTileset " + tilesetName + " = ");
             stringBuilder.AppendLine("{");
             stringBuilder.AppendLine("    ANIMATED_TILESET_RESOURCE_TYPE,");
             stringBuilder.AppendLine("    " + tilesetName + "_metatiles,");
@@ -305,6 +309,7 @@ namespace gal2tmx
                                         string tilesetName, 
                                         string sourceName,
                                         SplitBitmap tilesetSplitBitmap, 
+                                        string bank,
                                         bool animated,
                                         bool isBreakable)
         {
@@ -321,11 +326,16 @@ namespace gal2tmx
             if (!animated)
             {
                 WriteTilesetTiles(stringBuilder, tilesetName, tilesetSplitBitmap.UniqueBitmapTiles);
-                WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap, isBreakable);
+                WriteTilesetStruct(stringBuilder, tilesetName, tilesetSplitBitmap, bank, isBreakable);
             }
             else
             {
-                WriteAnimatedTilesetStruct(stringBuilder, tilesetName, sourceName, tilesetSplitBitmap, isBreakable);
+                WriteAnimatedTilesetStruct(stringBuilder, 
+                                           tilesetName, 
+                                           sourceName, 
+                                           tilesetSplitBitmap, 
+                                           bank,
+                                           isBreakable);
             }
 
             System.IO.StreamWriter file = new System.IO.StreamWriter(sourcePath);

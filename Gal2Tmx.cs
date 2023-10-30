@@ -39,6 +39,8 @@ namespace gal2tmx
 
         private string TileTypesPath { get; set; }
 
+        private string Bank { get; set; } = "";
+
         public Gal2Tmx()
         {
 
@@ -201,6 +203,7 @@ namespace gal2tmx
                                        TilesetFilename, 
                                        SourceName,
                                        tilesetSplitBitmap, 
+                                       Bank,
                                        IsTilesetAnimated,
                                        IsBreakable);
 
@@ -252,6 +255,13 @@ namespace gal2tmx
                 if (arg == "-y" || arg == "-o")
                     ForceOverwrite = true;
 
+                if (arg == "-bank")
+                {
+                    if (loop + 1 < args.Length)
+                    {
+                        Bank = args[loop + 1];
+                    }
+                }
 
                 if (arg == "-tiletypes")
                 {
