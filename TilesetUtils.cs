@@ -39,9 +39,9 @@ namespace gal2tmx
             stringBuilder.AppendLine("");
 
             if (animated)
-                stringBuilder.AppendLine("extern const AnimatedTileset " + tilesetName + ";");
+                stringBuilder.AppendLine("RESOURCE extern const AnimatedTileset " + tilesetName + ";");
             else
-                stringBuilder.AppendLine("extern const Tileset " + tilesetName + ";");
+                stringBuilder.AppendLine("RESOURCE extern const Tileset " + tilesetName + ";");
 
             stringBuilder.AppendLine("");
             stringBuilder.AppendLine("#endif");
@@ -277,7 +277,7 @@ namespace gal2tmx
                                                        SplitBitmap tilesetSplitBitmap,
                                                        bool isBreakable)
         {
-             stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
+             stringBuilder.AppendLine("RESOURCE extern TileAnimation " + sourceName + "; // the animation this tileset needs");
 
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("const AnimatedTileset " + tilesetName + " = ");
