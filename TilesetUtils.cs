@@ -281,7 +281,7 @@ namespace gal2tmx
                                                        string bank,
                                                        bool isBreakable)
         {
-             stringBuilder.AppendLine("extern TileAnimation " + sourceName + "; // the animation this tileset needs");
+             stringBuilder.AppendLine("extern ResourceInfo " + sourceName + "ResourceInfo; // the animation this tileset needs");
 
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("RESOURCE(" + bank + ") const AnimatedTileset " + tilesetName + " = ");
@@ -300,7 +300,7 @@ namespace gal2tmx
             }
 
 
-            stringBuilder.AppendLine("    &" + sourceName + ", // animation");
+            stringBuilder.AppendLine("    &" + sourceName + "ResourceInfo, // animation");
             stringBuilder.AppendLine("};");
         }
 

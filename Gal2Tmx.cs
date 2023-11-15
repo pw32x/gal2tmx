@@ -259,7 +259,7 @@ namespace gal2tmx
                 {
                     if (loop + 1 < args.Length)
                     {
-                        Bank = args[loop + 1];
+                        Bank = "BANK" + args[loop + 1];
                     }
                 }
 
