@@ -326,47 +326,118 @@ namespace gal2tmx
             }
         }
 
+        private static RotateFlipType? BitmapsMatch(Bitmap b1, Bitmap b2, ExportFlipType exportFlipType)
+        {
+            if ((b1 == null) != (b2 == null)) return null;
+            if (b1.Size != b2.Size) return null;
+
+            var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+            try
+            {
+                IntPtr bd1scan0 = bd1.Scan0;
+                IntPtr bd2scan0 = bd2.Scan0;
+
+                int stride = bd1.Stride / sizeof(int);
+                int len = stride * b1.Height;
+                int byteLen = bd1.Stride * b1.Height;
+
+                // we want to check if they're exactly the same
+                if (memcmp(bd1scan0, bd2scan0, byteLen) == 0)
+                {
+                    return RotateFlipType.RotateNoneFlipNone;
+                }
+
+                // we want to check if they're the same but flipped
+                //
+                if (exportFlipType != ExportFlipType.None)
+                {
+                    int[] bd1Values = new int[len];
+                    int[] bd2Values = new int[len];
+
+                    // Copy the RGB values into the array
+                    Marshal.Copy(bd1scan0, bd1Values, 0, len);
+                    Marshal.Copy(bd2scan0, bd2Values, 0, len);
+
+                    Func<bool> isFlippedOnX = () =>
+                    {
+                        // flipped on X
+                        for (int loopy = 0; loopy < b1.Height; loopy++)
+                        {
+                            for (int loopx = 0; loopx < stride; loopx++)
+                            {
+                                if (bd1Values[loopx + (loopy * stride)] != bd2Values[((stride - 1) - loopx) + (loopy * stride)])
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    };
+
+                    if (isFlippedOnX())
+                        return RotateFlipType.RotateNoneFlipX;
+
+                    Func<bool> isFlippedOnY = () =>
+                    {
+                        // flipped on Y
+                        for (int loopy = 0; loopy < b1.Height; loopy++)
+                        {
+                            for (int loopx = 0; loopx < stride; loopx++)
+                            {
+                                if (bd1Values[loopx + (loopy * stride)] != bd2Values[loopx + (((b1.Height - 1) - loopy) * stride)])
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    };
+
+                    if (isFlippedOnY())
+                        return RotateFlipType.RotateNoneFlipY;
+                    
+                    Func<bool> isFlippedOnXY = () =>
+                    {
+                        // flipped on X
+                        for (int loopy = 0; loopy < b1.Height; loopy++)
+                        {
+                            for (int loopx = 0; loopx < stride; loopx++)
+                            {
+                                if (bd1Values[loopx + (loopy * stride)] != bd2Values[((stride - 1) - loopx) + (((b1.Height - 1) - loopy) * stride)])
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    };
+
+                    if (isFlippedOnXY())
+                        return RotateFlipType.RotateNoneFlipXY;
+                }
+            }
+            finally
+            {
+                b1.UnlockBits(bd1);
+                b2.UnlockBits(bd2);
+            }
+
+
+            return null;
+        }
+
         private Tuple<BitmapTile, RotateFlipType> getTileWithSameBitmap(Bitmap bitmap, ExportFlipType exportFlipType)
         {
             foreach (var tile in UniqueBitmapTiles)
             {
-                if (CompareMemCmp(bitmap, tile.Bitmap))
-                {
-                    return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipNone);
-                }
+                RotateFlipType? flipType = BitmapsMatch(tile.Bitmap, bitmap, exportFlipType);
 
-                if (exportFlipType != ExportFlipType.None)
-                {
-                    // CompareFlippedX
-                    var flippedXBitmap = (Bitmap)bitmap.Clone();
-                    flippedXBitmap.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-                    if (CompareMemCmp(flippedXBitmap, tile.Bitmap))
-                    {
-                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipX);
-                    }
-
-                    // CompareFlippedY
-                    var flippedYBitmap = (Bitmap)bitmap.Clone();
-                    flippedYBitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
-
-                    if (CompareMemCmp(flippedYBitmap, tile.Bitmap))
-                    {
-                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipY);
-                    }
-
-                    // CompareFlippedXY
-                    var flippedXYBitmap = (Bitmap)bitmap.Clone();
-                    flippedXYBitmap.RotateFlip(RotateFlipType.RotateNoneFlipXY);
-
-                    if (CompareMemCmp(flippedXYBitmap, tile.Bitmap))
-                    {
-                        return new Tuple<BitmapTile, RotateFlipType>(tile, RotateFlipType.RotateNoneFlipXY);
-                    }
-                }
+                if (flipType != null)
+                    return new Tuple<BitmapTile, RotateFlipType>(tile, flipType.Value);
             }
 
             return null;
         }
+
+
     }
 }
