@@ -255,12 +255,9 @@ namespace gal2tmx
                 if (arg == "-y" || arg == "-o")
                     ForceOverwrite = true;
 
-                if (arg == "-bank")
+                if (arg.StartsWith("-bank"))
                 {
-                    if (loop + 1 < args.Length)
-                    {
-                        Bank = "BANK" + args[loop + 1];
-                    }
+                    Bank = arg.Substring("-".Length).ToUpper();
                 }
 
                 if (arg == "-tiletypes")
