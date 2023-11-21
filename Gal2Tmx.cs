@@ -17,7 +17,6 @@ namespace gal2tmx
 
         private string DestinationFolder { get; set; }
         private string TilesetDestinationFolder { get; set; }
-        private string AnimatedTilesetDestinationFolder { get; set; }
         private string SourceName { get; set; }
         private string SourcePath { get; set; }
         private string TilemapDestinationPath { get; set; }
@@ -207,13 +206,6 @@ namespace gal2tmx
                                        IsTilesetAnimated,
                                        IsBreakable);
 
-            if (IsTilesetAnimated)
-            {
-                // copy .gal to destination folder
-
-                File.Copy(SourcePath, AnimatedTilesetDestinationFolder + SourceName + ".animatedtileset.gal", true);
-            }
-
             Console.WriteLine("Conversion complete.");
 
             return 0;
@@ -293,27 +285,6 @@ namespace gal2tmx
                         {
                             Directory.CreateDirectory(TilesetDestinationFolder);
                         }
-                    }
-                }
-
-                // where the copied animated tile .gal file will be copied
-                if (arg == "-animationdest")
-                {
-                    if (loop + 1 < args.Length)
-                    {
-                        AnimatedTilesetDestinationFolder = args[loop + 1];
-                        if (AnimatedTilesetDestinationFolder.StartsWith("-"))
-                        {
-                            throw new Exception("No valid value given for animation destination");
-                        }
-
-                        AnimatedTilesetDestinationFolder += '\\';
-
-                        if (!Directory.Exists(AnimatedTilesetDestinationFolder))
-                        {
-                            Directory.CreateDirectory(AnimatedTilesetDestinationFolder);
-                        }
-
                     }
                 }
             }
