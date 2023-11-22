@@ -11,7 +11,16 @@ namespace gal2tmx
         static int Main(string[] args)
         {
             var gal2Tmx = new Gal2Tmx();
-            return gal2Tmx.Run(args);
+
+            try
+            {
+                return gal2Tmx.Run(args);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return -1;
+            }
         }
     }
 }

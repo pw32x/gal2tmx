@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -43,6 +44,47 @@ namespace gal2tmx
             bitmap.UnlockBits(bitmapData);
 
             return true;
+        }
+
+        internal static bool IsFile(string path)
+        {
+            return File.Exists(path);
+        }
+
+        internal static bool IsFileOrFileSpec(string path)
+        {
+            return path.Contains('*') || path.Contains('.');
+        }
+
+        internal static bool HasWildcard(string path)
+        {
+            return path.Contains('*');
+        }
+
+        public static IEnumerable<string> GetFilesFromWildcardPath(string path)
+        {
+            List<string> filenames = new List<string>();
+
+            path = Path.Combine(path.Split('/'));
+            int lastSlashIndex = path.LastIndexOf(System.IO.Path.DirectorySeparatorChar);
+
+            string directoryPath = "";
+
+            if (lastSlashIndex > 0)
+                directoryPath = path.Substring(0, lastSlashIndex + 1);
+
+            string searchPattern = Path.GetFileName(path);
+
+            string[] matchingFiles = Directory.GetFiles(directoryPath, 
+                                                        searchPattern, 
+                                                        SearchOption.TopDirectoryOnly);
+
+            foreach (string matchingFile in matchingFiles)
+            {
+                filenames.Add(matchingFile);
+            }
+
+            return filenames;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using GraphicsGaleWrapper;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -12,63 +13,98 @@ namespace gal2tmx
 {
     internal class Gal2Tmx
     {
-        private string[] mArgs;
+        // per-file options
+        private class JobSpec
+        {
+            public string SourceName { get; set; }
+            public string SourcePath { get; set; }
 
 
+            public string TilesetFilename { get; set; }
+            public string TiledTilesetName { get; set; }
+            public string TiledTilesetFilename { get; set; }
+            public string TiledTilesetBitmapName { get; set; }
+            public string TilemapDestinationPath { get; set; }
+            public string TSXDestinationPath { get; set; }
+            public string TiledTilesetBmpDestinationPath { get; set; }
+            public string TilesetBmpDestinationPath { get; set; }
+
+            public bool IsTilesetOnly { get; set; } = false;
+            public bool IsTilesetAnimated { get; set; } = false;
+            public bool IsBreakable { get; set; } = false;
+        }
+
+        // global options
         private string DestinationFolder { get; set; }
         private string TilesetDestinationFolder { get; set; }
-        private string SourceName { get; set; }
-        private string SourcePath { get; set; }
-        private string TilemapDestinationPath { get; set; }
-        private string TiledTilesetName { get; set; }
-        private string TiledTilesetFilename { get; set; }
-        private string TiledTilesetBitmapName { get; set; }
-        private string TSXDestinationPath { get; set; }
-
-        private string TiledTilesetBmpDestinationPath { get; set; }
-        private string TilesetBmpDestinationPath { get; set; }
-        private string TilesetFilename { get; set; }
 
         // optional flags
         private bool ForceOverwrite { get; set; } = false;
-        private bool IsTilesetOnly { get; set; } = false;
-        private bool IsTilesetAnimated { get; set; } = false;
-
-        private bool IsBreakable { get; set; } = false;
 
         private string TileTypesPath { get; set; }
 
         private string Bank { get; set; } = "";
 
-        public Gal2Tmx()
-        {
-
-        }
+        private const int MetatileWidth = 16;
+        private const int MetatileHeight = 16;
 
         public int Run(string[] args)
         {
-            mArgs = args;
-
-            if (mArgs.Length == 0)
+            if (args.Length == 0)
             {
-                Console.WriteLine("No filename specified");
+                Console.WriteLine("No filename or path specified");
                 return -1;
             }
 
-            ProcessArguments(mArgs);
+            List<string> filenames = BuildFilenameList(args[0]);
 
-            try
+            ProcessArguments(args);
+
+            SplitBitmap tileTypesblocks = LoadTileTypes();
+
+            foreach (var filename in filenames)
             {
-                CheckExists();
+                string sourceNameAndOptions = Path.GetFileNameWithoutExtension(filename);
+
+                var jobSpec = new JobSpec();
+
+                var tokens = sourceNameAndOptions.Split('.');
+
+                jobSpec.SourceName = tokens[0];
+                jobSpec.SourcePath = filename;
+
+                foreach (var token in tokens)
+                {
+                    if (token == "animatedtileset")
+                    {
+                        jobSpec.IsTilesetAnimated = true;
+                    }
+
+                    if (token == "tileset")
+                    {
+                        jobSpec.IsTilesetOnly = true;
+                    }
+
+                    if (token == "breakable")
+                    {
+                        jobSpec.IsBreakable = true;
+                    }
+                }
+
+                BuildExportPaths(jobSpec, DestinationFolder);
+
+                // check if it needs updating. if it doesn't, skip.
+                //if (!NeedsUpdate(jobSpec)) // check for ForceOverwrite too
+                //    continue;
+
+                ProcessJob(jobSpec, tileTypesblocks);
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                return -1;
-            }
 
 
 
+
+
+            /*
             int result = ForceOverwrite ? 1 : CheckOverwrites();
 
             if (result == 0)
@@ -76,35 +112,25 @@ namespace gal2tmx
                 Console.WriteLine("Conversion aborted.");
                 return -1;
             }
+            */
 
-            int metatileWidth = 16;
-            int metatileHeight = 16;
 
-            SplitBitmap tileTypesblocks = null; 
 
-            // load the tiletypes file, if given, and split into blocks.
-            if (!String.IsNullOrEmpty(TileTypesPath))
-            {
-                var tileTypesGGObject = new GaleObject(TileTypesPath);
-                var tileTypesBitmap = tileTypesGGObject.Frames[0].Layers[0].CreateBitmap();
-                var tileTypes4bppBitmap = BitmapUtils.Create4bppBitmap(tileTypesBitmap, tileTypesGGObject.Palette);
-                tileTypesblocks = new SplitBitmap();
-                tileTypesblocks.SplitLinearly(tileTypes4bppBitmap, 
-                                              null, 
-                                              null,
-                                              metatileWidth, 
-                                              metatileHeight, 
-                                              false, 
-                                              SplitBitmap.ExportFlipType.None);
-            }
 
-            var ggObject = new GaleObject(SourcePath);
+            Console.WriteLine("Conversion complete.");
+
+            return 0;
+        }
+
+        private void ProcessJob(JobSpec jobSpec, SplitBitmap tileTypesblocks)
+        {
+            var ggObject = new GaleObject(jobSpec.SourcePath);
 
             if (!GraphicsGaleObjectIsAcceptable(ggObject))
             {
-                Console.WriteLine("Graphics gale file doesn't have the format we want.");
-                Console.WriteLine("Conversion aborted.");
-                return -1;
+                Console.WriteLine("Graphics gale file " + jobSpec.SourcePath + " doesn't have the format we want.");
+                Console.WriteLine("Conversion skipped.");
+                return;
             }
 
             var frame = ggObject.Frames[0];
@@ -120,73 +146,61 @@ namespace gal2tmx
                 ggTileTypesBitmap = tiletypesLayer.CreateBitmap();
             }
 
-            /*
-            System.IO.DirectoryInfo di = new DirectoryInfo(testResultsFolder);
-            foreach (FileInfo file in di.GetFiles())
-            {
-                file.Delete();
-            }
-            */
-
             // the ggbitmap is 32 bit. convert to 4bit
             var ggFrame4bppBitmap = BitmapUtils.Create4bppBitmap(ggFrameBitmap, ggObject.Palette);
             //fbppBitmap.Save(testResultsFolder + "4bppBitmap.bmp", ImageFormat.Bmp);
 
             // split the image into blocks.
             var tiledTilesetSplitBitmap = new SplitBitmap();
-            tiledTilesetSplitBitmap.SplitLinearly(ggFrame4bppBitmap, 
-                                                  ggTileTypesBitmap, 
-                                                  tileTypesblocks, 
-                                                  metatileWidth, 
-                                                  metatileHeight, 
-                                                  true, 
+            tiledTilesetSplitBitmap.SplitLinearly(ggFrame4bppBitmap,
+                                                  ggTileTypesBitmap,
+                                                  tileTypesblocks,
+                                                  MetatileWidth,
+                                                  MetatileHeight,
+                                                  true,
                                                   SplitBitmap.ExportFlipType.None);
 
-            int rowWidth = IsTilesetAnimated ? 1 : Math.Min(tiledTilesetSplitBitmap.UniqueBitmapTiles.Count(), 10);
+            int rowWidth = jobSpec.IsTilesetAnimated ? 1 : Math.Min(tiledTilesetSplitBitmap.UniqueBitmapTiles.Count(), 10);
 
-            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles, 
-                                                                      rowWidth, 
-                                                                      metatileWidth, 
-                                                                      metatileHeight);
-            tiledTilesetBitmap.Save(TiledTilesetBmpDestinationPath, ImageFormat.Bmp);
+            Bitmap tiledTilesetBitmap = BitmapUtils.PackTilesetBitmap(tiledTilesetSplitBitmap.UniqueBitmapTiles,
+                                                                      rowWidth,
+                                                                      MetatileWidth,
+                                                                      MetatileHeight);
+            tiledTilesetBitmap.Save(jobSpec.TiledTilesetBmpDestinationPath, ImageFormat.Bmp);
 
             // split the blocks into a tileset
             int tileWidth = 8;
             int tileHeight = 8;
 
             var tilesetSplitBitmap = new SplitBitmap();
-            tilesetSplitBitmap.SplitLinearly(tiledTilesetBitmap, 
-                                             null, 
+            tilesetSplitBitmap.SplitLinearly(tiledTilesetBitmap,
                                              null,
-                                             tileWidth, 
+                                             null,
+                                             tileWidth,
                                              tileHeight,
                                              true,
                                              SplitBitmap.ExportFlipType.SegaMasterSystem);
 
             // Save the tsx
-            TiledUtils.SaveTSX(TSXDestinationPath,
-                               TiledTilesetBitmapName,
-                               TiledTilesetName,
+            TiledUtils.SaveTSX(jobSpec.TSXDestinationPath,
+                               jobSpec.TiledTilesetBitmapName,
+                               jobSpec.TiledTilesetName,
                                tiledTilesetBitmap.Width,
                                tiledTilesetBitmap.Height,
-                               metatileWidth, 
-                               metatileHeight,
-                               IsTilesetAnimated,
+                               MetatileWidth,
+                               MetatileHeight,
+                               jobSpec.IsTilesetAnimated,
                                tilesetSplitBitmap.UniqueBitmapTiles.Count,
                                tiledTilesetSplitBitmap.UniqueBitmapTiles);
 
-            if (!IsTilesetAnimated && !IsTilesetOnly)
+            // save the tmx but not for animated or just tilesets
+            if (!jobSpec.IsTilesetAnimated && !jobSpec.IsTilesetOnly)
             {
-                // save the tmx but not for animated or just tilesets
-
-                string oldFilename = Path.ChangeExtension(TilemapDestinationPath, "tmx.old");
-                if (File.Exists(oldFilename))
-                {
-                    File.Delete(oldFilename);
-                    System.IO.File.Move(TilemapDestinationPath, oldFilename);
-                }
-
-                TiledUtils.SaveTMX(TilemapDestinationPath, TiledTilesetFilename, metatileWidth, metatileHeight, tiledTilesetSplitBitmap.BitmapTileMap);
+                TiledUtils.SaveTMX(jobSpec.TilemapDestinationPath, 
+                                   jobSpec.TiledTilesetFilename, 
+                                   MetatileWidth, 
+                                   MetatileHeight, 
+                                   tiledTilesetSplitBitmap.BitmapTileMap);
             }
 
 
@@ -194,21 +208,40 @@ namespace gal2tmx
             Bitmap tilesetBitmap = null;
 
             tilesetBitmap = BitmapUtils.PackTilesetBitmap(tilesetSplitBitmap.UniqueBitmapTiles, 2, tileWidth, tileHeight);
- 
+
             // uncomment to save the contents of the 8x8 tile set bitmap
             //tilesetBitmap.Save(TilesetBmpDestinationPath, ImageFormat.Bmp);
 
-            TilesetUtils.ExportTileset(TilesetDestinationFolder, 
-                                       TilesetFilename, 
-                                       SourceName,
-                                       tilesetSplitBitmap, 
+            TilesetUtils.ExportTileset(TilesetDestinationFolder,
+                                       jobSpec.TilesetFilename,
+                                       jobSpec.SourceName,
+                                       tilesetSplitBitmap,
                                        Bank,
-                                       IsTilesetAnimated,
-                                       IsBreakable);
+                                       jobSpec.IsTilesetAnimated,
+                                       jobSpec.IsBreakable);
+        }
 
-            Console.WriteLine("Conversion complete.");
+        private SplitBitmap LoadTileTypes()
+        {
+            SplitBitmap tileTypesblocks = null;
 
-            return 0;
+            // load the tiletypes file, if given, and split into blocks.
+            if (!String.IsNullOrEmpty(TileTypesPath))
+            {
+                var tileTypesGGObject = new GaleObject(TileTypesPath);
+                var tileTypesBitmap = tileTypesGGObject.Frames[0].Layers[0].CreateBitmap();
+                var tileTypes4bppBitmap = BitmapUtils.Create4bppBitmap(tileTypesBitmap, tileTypesGGObject.Palette);
+                tileTypesblocks = new SplitBitmap();
+                tileTypesblocks.SplitLinearly(tileTypes4bppBitmap,
+                                              null,
+                                              null,
+                                              MetatileWidth,
+                                              MetatileHeight,
+                                              false,
+                                              SplitBitmap.ExportFlipType.None);
+            }
+
+            return tileTypesblocks;
         }
 
         private bool GraphicsGaleObjectIsAcceptable(GaleObject ggObject)
@@ -236,11 +269,49 @@ namespace gal2tmx
             return true;
         }
 
+
+
         private void ProcessArguments(string[] args)
         {
-            int numPaths = BuildFilenames(args);
+            string sourcePath = args[0];
 
-            for (int loop = numPaths; loop < args.Length; loop++)
+            int argStartIndex = 1;
+
+            // figure out the destination folder
+            if (args.Length == 1)
+            {
+                DestinationFolder = Path.GetDirectoryName(sourcePath);
+            }
+            else
+            {
+                string arg = args[1];
+
+                if (arg.StartsWith("-"))
+                {
+                    DestinationFolder = Path.GetDirectoryName(sourcePath);
+                }
+                else
+                {
+                    DestinationFolder = arg;
+                    argStartIndex++;
+                }
+            }
+
+            if (!String.IsNullOrEmpty(DestinationFolder) && !DestinationFolder.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                DestinationFolder += Path.DirectorySeparatorChar;
+
+            if (!String.IsNullOrWhiteSpace(DestinationFolder) && !Directory.Exists(DestinationFolder))
+            {
+                Directory.CreateDirectory(DestinationFolder);
+            }
+
+            if (!String.IsNullOrWhiteSpace(TilesetDestinationFolder) && !Directory.Exists(TilesetDestinationFolder))
+            {
+                Directory.CreateDirectory(TilesetDestinationFolder);
+            }
+
+            // process the other flags
+            for (int loop = argStartIndex; loop < args.Length; loop++)
             {
                 string arg = args[loop];
 
@@ -290,92 +361,61 @@ namespace gal2tmx
             }
         }
 
-        private int BuildFilenames(string[] args)
+        private List<string> BuildFilenameList(string sourcePath)
         {
-            int numPaths = 1;
+            var filenames = new List<string>();
 
-            SourcePath = args[0];
-
-            string sourceNameAndOptions = Path.GetFileNameWithoutExtension(SourcePath);
-
-            var tokens = sourceNameAndOptions.Split('.');
-
-            foreach (var token in tokens)
+            if (Utils.IsFile(sourcePath))
             {
-                if (token == "animatedtileset")
+                if (!File.Exists(sourcePath))
                 {
-                    IsTilesetAnimated = true;
+                    throw new Exception("File " + sourcePath + " not found");
                 }
 
-                if (token == "tileset")
-                {
-                    IsTilesetOnly = true;
-                }
+                filenames.Add(sourcePath);
+            }
+            else if (Utils.HasWildcard(sourcePath))
+            {
+                var filenamesFromWildcard = Utils.GetFilesFromWildcardPath(sourcePath);
 
-                if (token == "breakable")
+                foreach (var filename in filenamesFromWildcard)
                 {
-                    IsBreakable = true;
+                    filenames.Add(filename);
+                }
+            }
+            else if (Directory.Exists(sourcePath))
+            {
+                DirectoryInfo directoryInfo = new DirectoryInfo(sourcePath);
+                FileInfo[] files = directoryInfo.GetFiles();
+
+                var filteredFiles = files.Where(file => string.Compare(file.Extension, ".gal", true) == 0);
+
+                foreach (var filteredFile in filteredFiles)
+                {
+                    filenames.Add(filteredFile.FullName);
                 }
             }
 
-            SourceName = tokens[0];
+            return filenames;
+        }
 
-            if (args.Length == 1)
-            {
-                DestinationFolder = Path.GetDirectoryName(SourcePath);
-            }
-            else
-            {
-                string arg = args[1];
+        private void BuildExportPaths(JobSpec jobSpec, string destinationFolder)
+        {
+            jobSpec.TiledTilesetName = jobSpec.SourceName + "_tileset";
+            jobSpec.TiledTilesetBitmapName = jobSpec.TiledTilesetName + "_tsx.bmp";
+            jobSpec.TiledTilesetFilename = jobSpec.TiledTilesetName + ".tsx";
 
-                if (arg.StartsWith("-"))
-                {
-                    DestinationFolder = Path.GetDirectoryName(SourcePath);
-                }
-                else
-                {
-                    DestinationFolder = arg;
-                    numPaths++;
-                }
-            }
-
-            if (!String.IsNullOrEmpty(DestinationFolder) && !DestinationFolder.EndsWith(Path.DirectorySeparatorChar.ToString()))
-                DestinationFolder += Path.DirectorySeparatorChar;
-
-            TiledTilesetName = SourceName + "_tileset";
-            TiledTilesetBitmapName = TiledTilesetName + "_tsx.bmp";
-            TiledTilesetFilename = TiledTilesetName + ".tsx";
-
-            TilesetFilename = SourceName + "_tileset";
+            jobSpec.TilesetFilename = jobSpec.SourceName + "_tileset";
 
             // use the same destination folder for everything right now, but
             // leave the option to set different ones.
-            TSXDestinationPath = DestinationFolder + TiledTilesetFilename;
-            TilemapDestinationPath = DestinationFolder + SourceName + ".tmx";
-            TiledTilesetBmpDestinationPath = DestinationFolder + TiledTilesetBitmapName;
-            TilesetBmpDestinationPath = DestinationFolder + SourceName + "_tileset.bmp";
-
-            return numPaths;
+            jobSpec.TSXDestinationPath = destinationFolder + jobSpec.TiledTilesetFilename;
+            jobSpec.TilemapDestinationPath = destinationFolder + jobSpec.SourceName + ".tmx";
+            jobSpec.TiledTilesetBmpDestinationPath = destinationFolder + jobSpec.TiledTilesetBitmapName;
+            jobSpec.TilesetBmpDestinationPath = destinationFolder + jobSpec.SourceName + "_tileset.bmp";
         }
 
-        private void CheckExists()
-        {
-            if (!File.Exists(SourcePath))
-            {
-                throw new Exception("File not found");
-            }
-
-            if (!String.IsNullOrWhiteSpace(DestinationFolder) && !Directory.Exists(DestinationFolder))
-            {
-                Directory.CreateDirectory(DestinationFolder);
-            }
-
-            if (!String.IsNullOrWhiteSpace(TilesetDestinationFolder) && !Directory.Exists(TilesetDestinationFolder))
-            {
-                Directory.CreateDirectory(TilesetDestinationFolder);
-            }
-        }
-
+        /*
         // returns 1 to continue
         //         0 to stop
         private int CheckOverwrites()
@@ -408,5 +448,6 @@ namespace gal2tmx
 
             return 1;
         }
+        */
     }
 }
