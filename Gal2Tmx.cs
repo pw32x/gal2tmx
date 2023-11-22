@@ -32,6 +32,8 @@ namespace gal2tmx
             public bool IsTilesetOnly { get; set; } = false;
             public bool IsTilesetAnimated { get; set; } = false;
             public bool IsBreakable { get; set; } = false;
+
+            public bool ExportMap => !IsTilesetAnimated && !IsTilesetOnly;
         }
 
         // global options
@@ -48,6 +50,8 @@ namespace gal2tmx
         private const int MetatileWidth = 16;
         private const int MetatileHeight = 16;
 
+        private  DateTime m_applicationTime;
+
         public int Run(string[] args)
         {
             if (args.Length == 0)
@@ -55,6 +59,9 @@ namespace gal2tmx
                 Console.WriteLine("No filename or path specified");
                 return -1;
             }
+
+            string appPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            m_applicationTime = System.IO.File.GetLastWriteTime(appPath);
 
             List<string> filenames = BuildFilenameList(args[0]);
 
@@ -94,32 +101,60 @@ namespace gal2tmx
                 BuildExportPaths(jobSpec, DestinationFolder);
 
                 // check if it needs updating. if it doesn't, skip.
-                //if (!NeedsUpdate(jobSpec)) // check for ForceOverwrite too
-                //    continue;
+                if (!NeedsUpdate(jobSpec, DestinationFolder))
+                {
+                    Console.WriteLine(filename + " is already up to date.");
+                    continue;
+                }
+
+                Console.WriteLine("Exporting " + filename);
 
                 ProcessJob(jobSpec, tileTypesblocks);
             }
 
-
-
-
-
-            /*
-            int result = ForceOverwrite ? 1 : CheckOverwrites();
-
-            if (result == 0)
-            {
-                Console.WriteLine("Conversion aborted.");
-                return -1;
-            }
-            */
-
-
-
-
             Console.WriteLine("Conversion complete.");
 
             return 0;
+        }
+
+        private bool NeedsUpdate(JobSpec jobSpec, string destinationFolder)
+        {
+            if (ForceOverwrite)
+            {
+                return true;
+            }
+
+            string tilesetHeaderName = jobSpec.TilesetFilename + ".h";
+            string tilesetHeaderPath = TilesetDestinationFolder + tilesetHeaderName;
+            string tilesetSourcePath = TilesetDestinationFolder + jobSpec.TilesetFilename + ".c";
+
+            var destinationPaths = new List<string>() { tilesetHeaderPath,
+                                                        tilesetSourcePath };
+
+            if (jobSpec.ExportMap)
+            {
+                destinationPaths.Add(jobSpec.TiledTilesetBmpDestinationPath);
+                destinationPaths.Add(jobSpec.TilemapDestinationPath);
+                destinationPaths.Add(jobSpec.TSXDestinationPath);
+            }
+
+            // if any of the destination files are missing, it needs an update
+            if (destinationPaths.Where(p => !File.Exists(p)).Any())
+                return true;
+
+            // check the destination file dates. 
+            var destinationDateTimes = destinationPaths.Select(p => System.IO.File.GetLastWriteTime(p));
+
+            // if the application is newer, then update
+            if (destinationDateTimes.Where(t => t < m_applicationTime).Any()) 
+                return true;
+
+            // if the source is newer, then update
+            DateTime sourceTime = System.IO.File.GetLastWriteTime(jobSpec.SourcePath);
+            if (destinationDateTimes.Where(t => t < sourceTime).Any())
+                return true;
+
+            return false;
         }
 
         private void ProcessJob(JobSpec jobSpec, SplitBitmap tileTypesblocks)
@@ -194,7 +229,7 @@ namespace gal2tmx
                                tiledTilesetSplitBitmap.UniqueBitmapTiles);
 
             // save the tmx but not for animated or just tilesets
-            if (!jobSpec.IsTilesetAnimated && !jobSpec.IsTilesetOnly)
+            if (jobSpec.ExportMap)
             {
                 TiledUtils.SaveTMX(jobSpec.TilemapDestinationPath, 
                                    jobSpec.TiledTilesetFilename, 
@@ -202,8 +237,6 @@ namespace gal2tmx
                                    MetatileHeight, 
                                    tiledTilesetSplitBitmap.BitmapTileMap);
             }
-
-
 
             Bitmap tilesetBitmap = null;
 
@@ -413,41 +446,6 @@ namespace gal2tmx
             jobSpec.TilemapDestinationPath = destinationFolder + jobSpec.SourceName + ".tmx";
             jobSpec.TiledTilesetBmpDestinationPath = destinationFolder + jobSpec.TiledTilesetBitmapName;
             jobSpec.TilesetBmpDestinationPath = destinationFolder + jobSpec.SourceName + "_tileset.bmp";
-        }
-
-        /*
-        // returns 1 to continue
-        //         0 to stop
-        private int CheckOverwrites()
-        {
-            if ((!IsTilesetAnimated && !IsTilesetOnly && File.Exists(TilemapDestinationPath)) ||
-                File.Exists(TSXDestinationPath) ||
-                File.Exists(TilesetBmpDestinationPath) ||
-                (!IsTilesetAnimated && !IsTilesetOnly && File.Exists(TiledTilesetBmpDestinationPath + ".h") || File.Exists(TiledTilesetBmpDestinationPath + ".c")))
-            {
-                Console.WriteLine("Destination files already exist. Overwrite?");
-
-                var keyInfo = Console.ReadKey();
-
-                char answer = keyInfo.KeyChar;
-
-                while (keyInfo.Key != ConsoleKey.Enter)
-                    keyInfo = Console.ReadKey();
-
-                if (answer == 'y' || answer == 'Y')
-                {
-                    Console.WriteLine("Overwriting files.");
-                    return 1;
-                }
-                else
-                {
-                    Console.WriteLine("Not overwriting files.");
-                    return 0;
-                }
-            }
-
-            return 1;
-        }
-        */
+        }        
     }
 }
